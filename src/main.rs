@@ -10,8 +10,7 @@ async fn main() {
     let token = env::var("DISCORD_TOKEN").expect("couldn't find token.");
     let intents = GatewayIntents::GUILDS
         | GatewayIntents::GUILD_MESSAGES
-        | GatewayIntents::MESSAGE_CONTENT
-        | GatewayIntents::GUILD_MEMBERS;
+        | GatewayIntents::MESSAGE_CONTENT;
 
     let mut client = Client::builder(&token, intents)
         .event_handler(events::DiscordEventHandler)

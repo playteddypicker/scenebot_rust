@@ -15,8 +15,14 @@ pub struct DiscordEventHandler;
 #[async_trait]
 
 impl EventHandler for DiscordEventHandler {
-    async fn ready(&self, _: Context, ready: Ready) {
+    async fn ready(&self, ctx: Context, ready: Ready) {
         println!("{}으로 로그인 완료!", ready.user.tag());
+
+        ctx.set_activity(Activity::playing(format!(
+            "이모지 확대용 봇 | {}개의 서버에서 일하는중",
+            ctx.cache.guilds().len()
+        )))
+        .await;
     }
 
     async fn guild_create(&self, ctx: Context, guild: Guild, is_new: bool) {
