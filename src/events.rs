@@ -2,7 +2,12 @@ use regex::Regex;
 use serenity::{
     async_trait,
     client::{Context, EventHandler},
-    model::{channel::Message, gateway::Ready, guild::Guild, id::GuildId},
+    model::{
+        channel::Message,
+        gateway::{Activity, Ready},
+        guild::Guild,
+        id::UserId,
+    },
 };
 
 pub struct DiscordEventHandler;
@@ -14,7 +19,34 @@ impl EventHandler for DiscordEventHandler {
         println!("{}으로 로그인 완료!", ready.user.tag());
     }
 
-    //async fn guild_create(&self, ctx: Context, guild: Guild, is_new: bool) {}
+    async fn guild_create(&self, ctx: Context, guild: Guild, is_new: bool) {
+        if !is_new {
+            return;
+        }
+        let teddypicker = UserId(653157614452211712);
+        match teddypicker.create_dm_channel(&ctx.http).await {
+            Ok(channel) => {
+                channel
+                    .say(
+                        &ctx.http,
+                        format!(
+                            "봇이 **{}**에 추가됨, 서버 수 : {}개",
+                            guild.name,
+                            ctx.cache.guilds().len()
+                        ),
+                    )
+                    .await
+                    .expect("Error occured while sending dm to teddypicker.");
+            }
+            Err(why) => println!("error occured while creating dm channel: {:?}", why),
+        }
+
+        ctx.set_activity(Activity::playing(format!(
+            "이모지 확대용 봇 | {}개의 서버에서 일하는중",
+            ctx.cache.guilds().len()
+        )))
+        .await;
+    }
 
     async fn message(&self, ctx: Context, msg: Message) {
         let msg_content_vec: Vec<&str> = msg.content.split(':').collect();
