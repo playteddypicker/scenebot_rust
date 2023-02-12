@@ -21,5 +21,6 @@ features = ["macros", "rt-multi-thread", "fs"]
 
 [dependencies.serenity]
 default-features = false
-features = ["builder", "chrono", "client", "cache", "gateway", "http", "model", "utils", "rustls_backend"]
-version = "0.11"
+features = ["builder", "chrono", "client", "cache", "gateway", "http", "model", "utils", "rustls_backend", "collector"]
+git = "https://github.com/serenity-rs/serenity"
+branch = "next"

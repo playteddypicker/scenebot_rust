@@ -1,15 +1,21 @@
 use serenity::{
+    builder::CreateCommand,
     client::Context,
-    model::{gateway::Activity, guild::Guild, id::UserId},
+    gateway::ActivityData,
+    model::{guild::Guild, id::UserId, prelude::Permissions},
 };
 
-use log::error;
+use log::{error, info};
 
-pub async fn senddm(ctx: &Context, guild: Guild, is_new: bool) {
-    if !is_new {
+use std::num::NonZeroU64;
+
+use crate::utils::guild_config::GuildConfig;
+
+pub async fn senddm(ctx: &Context, guild: &Guild, is_new: Option<bool>) {
+    if is_new.is_none() || !is_new.unwrap() {
         return;
     }
-    let teddypicker = UserId(653157614452211712);
+    let teddypicker = UserId(NonZeroU64::new(653157614452211712).unwrap());
     match teddypicker.create_dm_channel(&ctx.http).await {
         Ok(channel) => {
             channel
@@ -28,10 +34,35 @@ pub async fn senddm(ctx: &Context, guild: Guild, is_new: bool) {
     }
 }
 
+pub async fn new_guild_added(ctx: &Context, guild: &Guild, is_new: Option<bool>) {
+    if is_new.is_none() || !is_new.unwrap() {
+        return;
+    }
+
+    info!("new guild added: {}, ID: {}", guild.name, guild.id);
+
+    if let Err(why) = guild
+        .id
+        .create_application_command(
+            &ctx.http,
+            CreateCommand::new("update")
+                .description("봇의 업데이트를 확인해요")
+                .default_member_permissions(Permissions::ADMINISTRATOR),
+        )
+        .await
+    {
+        error!(
+            "error occured while creating update command at {}\n{:#?}",
+            guild.id, why
+        );
+    }
+
+    //DB Fetch
+}
+
 pub async fn set_bot_status(ctx: &Context) {
-    ctx.set_activity(Activity::playing(format!(
+    ctx.set_activity(Some(ActivityData::playing(format!(
         "이모지 확대용 봇 | {}개의 서버에서 일하는중",
         ctx.cache.guilds().len()
-    )))
-    .await;
+    ))));
 }
