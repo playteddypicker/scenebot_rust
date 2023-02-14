@@ -1,7 +1,7 @@
 use crate::{utils::scene_core::ImageSize, GlobalGuildConfigs};
 use log::{error, info};
 
-use mongodb::bson::{doc, Bson};
+use mongodb::bson::doc;
 use serde::{Deserialize, Serialize};
 use serenity::{client::Context, model::id::GuildId};
 use std::num::NonZeroU64;
@@ -56,8 +56,9 @@ impl GuildConfig {
         );
 
         //asynchronous하게 처리하게 바꾸기. 지금은 공부를 덜해서 못바꾸겠음 ㅅㅂ
-        let collections: mongodb::Collection<bson::document::Document> =
-            database.database("scene").collection("scene_guilds");
+        let collections: mongodb::Collection<bson::document::Document> = database
+            .database("scene")
+            .collection(std::env::var("BOT_DB_NAME").unwrap().as_str());
 
         let counter_lock = {
             let data_read = ctx.data.read().await;

@@ -10,8 +10,9 @@ pub async fn db_delete(
     database: &mongodb::Client,
 ) {
     let guildid = incomplete.id.0.get();
-    let collections: mongodb::Collection<bson::document::Document> =
-        database.database("scene").collection("scene_guilds");
+    let collections: mongodb::Collection<bson::document::Document> = database
+        .database("scene")
+        .collection(std::env::var("BOT_DB_NAME").unwrap().as_str());
 
     if let Err(why) = collections
         .find_one_and_delete(mongodb::bson::doc! { "guild_id" : guildid as f64 }, None)

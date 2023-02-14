@@ -50,6 +50,9 @@ impl CommandList {
 //개발 끝난거면 여따 쓰면 되니까 개발중/개발완료를 구분할 수 있음
 lazy_static! {
     pub static ref COMMAND_LIST: CommandList = CommandList {
-        commands: HashMap::from([("send", commands::send::get_command()),])
+        commands: HashMap::from([
+            ("send", commands::send::get_command()),
+            ("config", commands::config::get_command())
+        ])
     };
 }

@@ -73,7 +73,9 @@ pub async fn db_fetch(
         return;
     }
 
-    let collections = database.database("scene").collection("scene_guilds");
+    let collections = database
+        .database("scene")
+        .collection(std::env::var("BOT_DB_NAME").unwrap().as_str());
     let guildid = guild.id.0.get();
     let _ = collections
         .find_one_and_delete(doc! { "guild_id" : guildid as f64 }, None)

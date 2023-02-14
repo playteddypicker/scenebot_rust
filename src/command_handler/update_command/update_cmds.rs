@@ -111,7 +111,20 @@ async fn first_setup_msg(ctx: &Context, gid: GuildId, command: CommandInteractio
                         }
                     }
                     "show_patchnotes" => {
-                        //패치노트 임베드 보내기
+                        if let Err(why) = button_reaction
+                            .edit_response(
+                                &ctx,
+                                EditInteractionResponse::new()
+                                    .content(
+                                        super::load_patchnote::get_patchnote() + "여기서 확인 ㄱㄱ",
+                                    )
+                                    .components(vec![])
+                                    .embeds(vec![]),
+                            )
+                            .await
+                        {
+                            error!("Couldn't send complete msg. {:#?}", why);
+                        }
                     }
                     _ => {
                         command.delete_response(&ctx.http).await.unwrap();

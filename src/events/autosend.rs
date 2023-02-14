@@ -64,7 +64,7 @@ pub async fn auto_send_transfered_image(ctx: &Context, msg: &Message) {
     let (is_png, img_url) = filtered.unwrap();
 
     let files = [if is_png {
-        get_resized_image(&ctx, img_url.as_str(), &gconfig.auto_magnitute_config).await
+        get_resized_image(ctx, img_url.as_str(), &gconfig.auto_magnitute_config).await
     } else {
         CreateAttachment::url(&ctx.http, img_url.as_str())
             .await

@@ -12,7 +12,7 @@ pub trait EmojiFilter {
     fn emoji_format_filter(&self) -> Result<(bool, String), ()>;
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum ImageSize {
     HyperTechniqueOfLisaSuFinger,           //16x16
     Small,                                  //64x64
@@ -34,6 +34,20 @@ impl ImageSize {
             }
             "Auto" | _ => Self::Auto,
         }
+    }
+
+    pub fn value_to_string(input_value: &ImageSize) -> String {
+        let st = match input_value {
+            Self::HyperTechniqueOfLisaSuFinger => "HyperTechniqueOfLisaSuFinger",
+            Self::Small => "Small",
+            Self::Medium => "Medium",
+            Self::Large => "Large",
+            Self::HyperSuperUltraSexFeaturedFuckingLarge => {
+                "HyperSuperUltraSexFeaturedFuckingLarge"
+            }
+            Self::Auto => "Auto",
+        };
+        st.to_string()
     }
 }
 
