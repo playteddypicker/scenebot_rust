@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use serenity::{builder::CreateAttachment, client::Context};
 
 use std::io::BufWriter;
@@ -11,6 +12,7 @@ pub trait EmojiFilter {
     fn emoji_format_filter(&self) -> Result<(bool, String), ()>;
 }
 
+#[derive(Debug, Serialize, Deserialize)]
 pub enum ImageSize {
     HyperTechniqueOfLisaSuFinger,           //16x16
     Small,                                  //64x64
@@ -18,6 +20,21 @@ pub enum ImageSize {
     Large,                                  //256x256
     HyperSuperUltraSexFeaturedFuckingLarge, //300x300
     Auto,
+}
+
+impl ImageSize {
+    pub fn string_to_value(input_str: &str) -> Self {
+        match input_str {
+            "HyperTechniqueOfLisaSuFinger" => Self::HyperTechniqueOfLisaSuFinger,
+            "Small" => Self::Small,
+            "Medium" => Self::Medium,
+            "Large" => Self::Large,
+            "HyperSuperUltraSexFeaturedFuckingLarge" => {
+                Self::HyperSuperUltraSexFeaturedFuckingLarge
+            }
+            "Auto" | _ => Self::Auto,
+        }
+    }
 }
 
 //img_url은 항상 PNG파일임

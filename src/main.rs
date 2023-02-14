@@ -1,6 +1,9 @@
 use dotenv::dotenv;
 use env_logger::init;
-use log::error;
+use mongodb::{
+    options::{ClientOptions, ResolverConfig},
+    Client as DBClient,
+};
 use serenity::prelude::*;
 
 mod command_handler;
@@ -8,7 +11,7 @@ mod event_handler;
 mod events;
 mod utils;
 
-use std::{collections::HashMap, env, num::NonZeroU64, sync::Arc};
+use std::{collections::HashMap, env, error::Error, num::NonZeroU64, sync::Arc};
 use tokio::sync::{Mutex, RwLock};
 
 struct GlobalGuildConfigs;
@@ -18,7 +21,7 @@ impl TypeMapKey for GlobalGuildConfigs {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn Error>> {
     dotenv().ok();
     init();
 
@@ -31,8 +34,19 @@ async fn main() {
     let intents =
         GatewayIntents::GUILDS | GatewayIntents::GUILD_MESSAGES | GatewayIntents::MESSAGE_CONTENT;
 
+    let client_uri = env::var("DB_URI").expect("couldn't' find db uri");
+    let options =
+        ClientOptions::parse_with_resolver_config(&client_uri, ResolverConfig::cloudflare())
+            .await?;
+
+    let db_client = DBClient::with_options(options)?;
+
+    let handler = event_handler::DiscordEventHandler {
+        database: db_client,
+    };
+
     let mut client = Client::builder(&token, intents)
-        .event_handler(event_handler::DiscordEventHandler)
+        .event_handler(handler)
         .await
         .expect("Err creating client.");
 
@@ -41,7 +55,6 @@ async fn main() {
         data.insert::<GlobalGuildConfigs>(Arc::new(RwLock::new(HashMap::default())));
     }
 
-    if let Err(why) = client.start().await {
-        error!("Err creating client: {:?}", why);
-    }
+    client.start().await?;
+    Ok(())
 }
