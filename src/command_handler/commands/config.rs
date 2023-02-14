@@ -110,9 +110,7 @@ impl CommandInterface for GuildConfigSetting {
                     })
                     .stream();
 
-                    error!("쒸,팔");
                 if let Some(button_reaction) = interaction_stream.next().await {
-                    error!("어흑 마이깟");
                     let mut guilds_config = counter_lock.write().await;
                     let guild_config = guilds_config.get_mut(&command.guild_id.unwrap().0);
                     let gc = guild_config.unwrap();

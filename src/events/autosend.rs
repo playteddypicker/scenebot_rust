@@ -48,7 +48,6 @@ pub async fn auto_send_transfered_image(ctx: &Context, msg: &Message) {
         return;
     }
 
-    error!("쒸,팔");
     let counter_lock = {
         let data_read = ctx.data.read().await;
         data_read
@@ -56,10 +55,8 @@ pub async fn auto_send_transfered_image(ctx: &Context, msg: &Message) {
             .expect("poisened")
             .clone()
     };
-    error!("이히히");
     let guilds_config = counter_lock.read().await;
     let gconfig_lock = guilds_config.get(&msg.guild_id.unwrap().0).unwrap();
-    error!("섻");
     let config = {
         let gconfig = gconfig_lock.lock().await;
 
@@ -68,7 +65,6 @@ pub async fn auto_send_transfered_image(ctx: &Context, msg: &Message) {
         }
         gconfig.auto_magnitute_config.clone()
     };
-    error!("잇힝");
 
     let delresult = msg.delete(&ctx.http).await;
 
