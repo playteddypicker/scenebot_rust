@@ -3,7 +3,11 @@ use log::{error, info};
 
 use mongodb::bson::doc;
 use serde::{Deserialize, Serialize};
-use serenity::{client::Context, model::id::GuildId};
+use serenity::{
+    builder::CreateCommand,
+    client::Context,
+    model::{id::GuildId, Permissions},
+};
 use std::num::NonZeroU64;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -70,14 +74,21 @@ impl GuildConfig {
         let mut guilds_config = counter_lock.write().await;
 
         for guild in ctx.cache.guilds() {
-            let find_result = collections
-                .find_one(
+            let (_, find_result) = tokio::join!(
+                guild.create_application_command(
+                    &ctx.http,
+                    CreateCommand::new("update")
+                        .description("봇의 업데이트를 확인해요")
+                        .default_member_permissions(Permissions::ADMINISTRATOR),
+                ),
+                collections.find_one(
                     doc! {
                         "guild_id" : guild.0.get() as f64
                     },
                     None,
                 )
-                .await;
+            );
+
             match find_result {
                 Ok(x) => {
                     let new_config = match x {
