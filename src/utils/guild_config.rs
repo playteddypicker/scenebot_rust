@@ -132,5 +132,7 @@ impl GuildConfig {
                 }
             }
         }
+
+        info!("booting complete.");
     }
 }

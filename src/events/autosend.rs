@@ -48,6 +48,7 @@ pub async fn auto_send_transfered_image(ctx: &Context, msg: &Message) {
         return;
     }
 
+    error!("쒸,팔");
     let counter_lock = {
         let data_read = ctx.data.read().await;
         data_read
@@ -55,16 +56,29 @@ pub async fn auto_send_transfered_image(ctx: &Context, msg: &Message) {
             .expect("poisened")
             .clone()
     };
-    let (delresult, guilds_config) = tokio::join!(msg.delete(&ctx.http), counter_lock.write());
+    error!("이히히");
+    let guilds_config = counter_lock.read().await;
     let gconfig_lock = guilds_config.get(&msg.guild_id.unwrap().0).unwrap();
-    let gconfig = gconfig_lock.lock().await;
+    error!("섻");
+    let config = {
+        let gconfig = gconfig_lock.lock().await;
+
+        if !gconfig.auto_magnitute_enable {
+            return;
+        }
+        gconfig.auto_magnitute_config.clone()
+    };
+    error!("잇힝");
+
+    let delresult = msg.delete(&ctx.http).await;
+
     if let Err(why) = delresult {
         error!("couldn't delete message. {:?}", why);
     }
     let (is_png, img_url) = filtered.unwrap();
 
     let files = [if is_png {
-        get_resized_image(ctx, img_url.as_str(), &gconfig.auto_magnitute_config).await
+        get_resized_image(ctx, img_url.as_str(), &config).await
     } else {
         CreateAttachment::url(&ctx.http, img_url.as_str())
             .await
