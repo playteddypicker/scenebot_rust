@@ -74,7 +74,7 @@ impl GuildConfig {
         let mut guilds_config = counter_lock.write().await;
 
         for guild in ctx.cache.guilds() {
-            let (_, find_result) = tokio::join!(
+            let (_, find_result, _) = tokio::join!(
                 guild.create_application_command(
                     &ctx.http,
                     CreateCommand::new("update")
@@ -86,7 +86,9 @@ impl GuildConfig {
                         "guild_id" : guild.0.get() as f64
                     },
                     None,
-                )
+                ),
+                crate::command_handler::explicit_command_list::COMMAND_LIST
+                    .register_commands(guild, ctx)
             );
 
             match find_result {

@@ -100,7 +100,6 @@ impl CommandInterface for SendSizedEmoji {
         CreateCommand::new(self.name())
             .description("이모지의 크기를 변경해 전송합니다")
             .set_options(options)
-            .default_member_permissions(Permissions::SEND_MESSAGES | Permissions::ADD_REACTIONS)
     }
 }
 
