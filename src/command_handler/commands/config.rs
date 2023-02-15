@@ -64,8 +64,6 @@ impl CommandInterface for GuildConfigSetting {
 
         match command.get_response(&ctx.http).await {
             Ok(msg) => {
-                
-                    
                 {
                     let mut guilds_config = counter_lock.write().await;
                     let guild_config = guilds_config.get_mut(&command.guild_id.unwrap().0);
@@ -182,7 +180,30 @@ impl CommandInterface for GuildConfigSetting {
                                     "setemoji_largest" => ImageSize::HyperSuperUltraSexFeaturedFuckingLarge,
                                     _ => ImageSize::Auto,
                                 };
-                                gclock.auto_magnitute_config = size;
+                                gclock.auto_magnitute_config = size.clone();
+
+                                if let Err(why) = sizebutton_reaction
+                                    .create_response(
+                                        &ctx.http, 
+                                        CreateInteractionResponse::UpdateMessage(
+                                            CreateInteractionResponseMessage::new()
+                                                .content(
+                                                    format!(
+                                                        "이모지 크기 조절값을 \"{}\"으로 바꿨습니다.", 
+                                                        match size {
+                                                            ImageSize::HyperTechniqueOfLisaSuFinger => "절라 짝음",
+                                                            ImageSize::Small => "작음",
+                                                            ImageSize::Medium => "적당함",
+                                                            ImageSize::Large => "큼",
+                                                            ImageSize::HyperSuperUltraSexFeaturedFuckingLarge => "절라 큼",
+                                                            ImageSize::Auto => "자동",
+                                                        },
+                                                    )
+                                                ).embeds(vec![]).components(vec![])
+                                            )
+                                    ).await {
+                                        error!("sending error: {:?}", why);
+                                    }
                             }
                         }
                     }
