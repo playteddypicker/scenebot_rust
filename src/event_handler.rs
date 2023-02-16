@@ -10,6 +10,8 @@ use crate::command_handler::handler::seperate_command;
 use crate::command_handler::update_command::update_cmds::update_command;
 use crate::utils::guild_config::GuildConfig;
 
+use log::info;
+
 pub struct DiscordEventHandler {
     pub database: mongodb::Client,
 }
@@ -19,7 +21,7 @@ use crate::events::{autosend, guild_delete, guildbotadd};
 #[async_trait]
 impl EventHandler for DiscordEventHandler {
     async fn ready(&self, ctx: Context, ready: Ready) {
-        println!("{}으로 로그인 완료!", ready.user.tag());
+        info!("{}으로 로그인 완료!", ready.user.tag());
 
         ctx.set_activity(Some(ActivityData::playing(format!(
             "이모지 확대용 봇 | {}개의 서버에서 일하는중",
