@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use serenity::{
     builder::CreateCommand,
     client::Context,
+    gateway::ActivityData,
     model::{id::GuildId, Permissions},
 };
 use std::num::NonZeroU64;
@@ -72,6 +73,7 @@ impl GuildConfig {
                 .clone()
         };
         let mut guilds_config = counter_lock.write().await;
+        ctx.set_activity(Some(ActivityData::playing("부팅")));
 
         for guild in ctx.cache.guilds() {
             let (_, find_result, _) = tokio::join!(
@@ -134,6 +136,10 @@ impl GuildConfig {
                 }
             }
         }
+        ctx.set_activity(Some(ActivityData::playing(format!(
+            "이모지 확대용 봇 | {}개의 서버에서 일하는중",
+            ctx.cache.guilds().len()
+        ))));
 
         info!("booting complete.");
     }

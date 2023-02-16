@@ -2,7 +2,7 @@ use serenity::{
     async_trait,
     builder::{
         CreateActionRow, CreateButton, CreateCommand, CreateEmbed, CreateInteractionResponse,
-        CreateInteractionResponseMessage, EditInteractionResponse, CreateAttachment
+        CreateInteractionResponseMessage, EditInteractionResponse, CreateAttachment, CreateInteractionResponseFollowup,
     },
     client::Context,
     futures::StreamExt,
@@ -187,8 +187,18 @@ impl CommandInterface for GuildConfigSetting {
                                         &ctx.http, 
                                         CreateInteractionResponse::UpdateMessage(
                                             CreateInteractionResponseMessage::new()
-                                                .content(
-                                                    format!(
+                                                .embeds(vec![]).components(vec![])
+                                            )
+                                    ).await {
+                                        error!("sending error: {:?}", why);
+                                    }
+
+                                if let Err(why) = command
+                                    .create_followup(
+                                        &ctx.http, 
+                                        CreateInteractionResponseFollowup::new()
+                                            .content(
+                                                format!(
                                                         "이모지 크기 조절값을 \"{}\"으로 바꿨습니다.", 
                                                         match size {
                                                             ImageSize::HyperTechniqueOfLisaSuFinger => "절라 짝음",
@@ -199,8 +209,7 @@ impl CommandInterface for GuildConfigSetting {
                                                             ImageSize::Auto => "자동",
                                                         },
                                                     )
-                                                ).embeds(vec![]).components(vec![])
-                                            )
+                                                )
                                     ).await {
                                         error!("sending error: {:?}", why);
                                     }
