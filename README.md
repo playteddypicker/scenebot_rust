@@ -11,4 +11,4 @@ JS로 짠거 : https://github.com/playteddypicker/scenebot
 1. [x] /send로 특정 이모지를 특정 사이즈로 보내기
 1. [x] 데이터베이스 연결
 1. [x] /config로 이모지 확대 설정창 구현
-1. [ ] /help 구현 후 테스트 및 최종 업데이트
+1. [x] /help 구현 후 테스트 및 최종 업데이트
