@@ -52,7 +52,8 @@ lazy_static! {
     pub static ref COMMAND_LIST: CommandList = CommandList {
         commands: HashMap::from([
             ("send", commands::send::get_command()),
-            ("config", commands::config::get_command())
+            ("config", commands::config::get_command()),
+            ("help", commands::help::get_command())
         ])
     };
 }
