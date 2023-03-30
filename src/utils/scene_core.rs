@@ -1,11 +1,12 @@
 use serde::{Deserialize, Serialize};
 use serenity::{builder::CreateAttachment, client::Context};
 
-use std::io::BufWriter;
+use std::io::{BufReader, BufWriter, Cursor, Seek, Write};
 use std::num::NonZeroU32;
 
 use fast_image_resize as fr;
-use image::{codecs::png::PngEncoder, ColorType, ImageEncoder};
+use image::codecs::{gif::GifEncoder, webp::WebPDecoder};
+use image::{io::Reader, AnimationDecoder, ImageEncoder};
 
 //png인지 확인하는 부울값과 img url을 반환함
 pub trait EmojiFilter {
@@ -32,7 +33,7 @@ impl ImageSize {
             "HyperSuperUltraSexFeaturedFuckingLarge" => {
                 Self::HyperSuperUltraSexFeaturedFuckingLarge
             }
-            "Auto" | _ => Self::Auto,
+            _ => Self::Auto,
         }
     }
 
@@ -103,6 +104,54 @@ pub async fn get_resized_image(
         }
     }
 }
+
+#[tokio::test]
+async fn test() {
+    webp_transfer().await;
+}
+
+pub async fn webp_transfer() {
+    let mut reader_buf = Cursor::new(Vec::new());
+
+    reader_buf.write_all(&reqwest::get(
+            "https://cdn.discordapp.com/attachments/753490327255515176/1090414871243399289/1668529071.webp"
+            )
+        .await
+        .unwrap()
+        .bytes()
+        .await
+        .unwrap().to_vec()[..]
+        ).unwrap();
+
+    println!("asdf");
+
+    reader_buf.rewind().unwrap();
+    println!("qwer");
+
+    let decoded_webp = WebPDecoder::new(reader_buf).unwrap();
+    //let mut result_buf = BufWriter::new(Vec::new());
+    let mut result_buf = std::fs::File::create("out.gif").unwrap();
+
+    //default extension
+    let extension = if decoded_webp.has_animation() {
+        let frames = decoded_webp.into_frames();
+        GifEncoder::new(&mut result_buf)
+            .try_encode_frames(frames)
+            .unwrap();
+        println!("transfered webp to gif.");
+        "gif"
+    } else {
+        "png"
+    };
+
+    /*
+    CreateAttachment::bytes(
+        result_buf.into_inner().unwrap().to_vec(),
+        "transfered".to_string() + extension,
+    )*/
+}
+
+use image::{codecs::png::PngEncoder, ColorType};
 
 async fn resize_png(
     img_url: &str,
