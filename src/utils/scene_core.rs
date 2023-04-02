@@ -5,8 +5,11 @@ use std::io::{BufReader, BufWriter, Cursor, Seek, Write};
 use std::num::NonZeroU32;
 
 use fast_image_resize as fr;
-use image::codecs::{gif::GifEncoder, webp::WebPDecoder};
-use image::{io::Reader, AnimationDecoder, ImageEncoder};
+use image::codecs::{
+    gif::{GifEncoder, Repeat},
+    webp::WebPDecoder,
+};
+use image::{AnimationDecoder, ImageDecoder, ImageEncoder};
 
 //png인지 확인하는 부울값과 img url을 반환함
 pub trait EmojiFilter {
@@ -105,50 +108,88 @@ pub async fn get_resized_image(
     }
 }
 
-#[tokio::test]
-async fn test() {
-    webp_transfer().await;
-}
+pub async fn webp_transfer(image_url: String) -> CreateAttachment {
+    use std::time::Instant;
+    let now = Instant::now();
 
-pub async fn webp_transfer() {
+    println!("started getting webp image data from url.");
     let mut reader_buf = Cursor::new(Vec::new());
 
-    reader_buf.write_all(&reqwest::get(
-            "https://cdn.discordapp.com/attachments/753490327255515176/1090414871243399289/1668529071.webp"
-            )
-        .await
-        .unwrap()
-        .bytes()
-        .await
-        .unwrap().to_vec()[..]
-        ).unwrap();
+    reader_buf
+        .write_all(
+            &reqwest::get(image_url)
+                .await
+                .unwrap()
+                .bytes()
+                .await
+                .unwrap()
+                .to_vec()[..],
+        )
+        .unwrap();
 
-    println!("asdf");
+    println!(
+        "got webp image data from url : {:.4}sec",
+        now.elapsed().as_millis() as f64 / 1000.0
+    );
 
     reader_buf.rewind().unwrap();
-    println!("qwer");
+    println!(
+        "rewinded buf : {:.4}",
+        now.elapsed().as_millis() as f64 / 1000.0
+    );
 
     let decoded_webp = WebPDecoder::new(reader_buf).unwrap();
-    //let mut result_buf = BufWriter::new(Vec::new());
-    let mut result_buf = std::fs::File::create("out.gif").unwrap();
+    let mut result_buf = BufWriter::new(Vec::new());
 
     //default extension
     let extension = if decoded_webp.has_animation() {
+        println!(
+            "generated WebPDecoder: {:.4}sec",
+            now.elapsed().as_millis() as f64 / 1000.0
+        );
+        println!("transfering webp to gif..");
         let frames = decoded_webp.into_frames();
-        GifEncoder::new(&mut result_buf)
-            .try_encode_frames(frames)
-            .unwrap();
-        println!("transfered webp to gif.");
-        "gif"
+        println!(
+            "transfered webps to frames: {:.4}sec",
+            now.elapsed().as_millis() as f64 / 1000.0
+        );
+        let mut encoding_gif = GifEncoder::new_with_speed(&mut result_buf, 10);
+        println!(
+            "generated gif encoder: {:.4}sec",
+            now.elapsed().as_millis() as f64 / 1000.0
+        );
+        encoding_gif.try_encode_frames(frames).unwrap();
+        println!(
+            "finished encoding frames: {:.4}sec",
+            now.elapsed().as_millis() as f64 / 1000.0
+        );
+        encoding_gif.set_repeat(Repeat::Infinite).unwrap();
+        println!(
+            "transfered webp to gif. {:.4}sec",
+            now.elapsed().as_millis() as f64 / 1000.0
+        );
+        ".gif"
     } else {
-        "png"
+        let (result_width, result_height) = decoded_webp.dimensions();
+        let mut read_image = vec![0; decoded_webp.total_bytes() as usize];
+        decoded_webp.read_image(&mut read_image).unwrap();
+
+        PngEncoder::new(&mut result_buf)
+            .write_image(
+                &read_image[..],
+                result_width,
+                result_height,
+                ColorType::Rgba8,
+            )
+            .unwrap();
+        println!("transfered webp to png.");
+        ".png"
     };
 
-    /*
     CreateAttachment::bytes(
         result_buf.into_inner().unwrap().to_vec(),
         "transfered".to_string() + extension,
-    )*/
+    )
 }
 
 use image::{codecs::png::PngEncoder, ColorType};
