@@ -9,6 +9,7 @@ use serenity::{
 use crate::GlobalGuildConfigs;
 
 use crate::utils::scene_core::{get_resized_image, webp_transfer, EmojiFilter};
+use std::time::Instant;
 
 impl EmojiFilter for Message {
     fn emoji_format_filter(&self) -> Result<(bool, String), ()> {
@@ -131,12 +132,18 @@ pub async fn auto_send_webp_image(ctx: &Context, msg: &Message) {
         return;
     }
 
+    let now = Instant::now();
+
     if let Ok(transfered) = webp_transfer(msg.attachments[0].url.clone(), true).await {
         if let Err(why) = msg
             .channel_id
             .send_message(
                 &ctx.http,
                 CreateMessage::new()
+                    .content(format!(
+                        "변환 시간 : {:.4}초",
+                        now.elapsed().as_millis() as f64 / 1000.0
+                    ))
                     .add_file(transfered)
                     .reference_message(MessageReference::from(msg)),
             )
