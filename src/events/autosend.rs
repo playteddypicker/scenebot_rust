@@ -55,16 +55,10 @@ pub async fn auto_send_transfered_image(ctx: &Context, msg: &Message) {
             .expect("poisened")
             .clone()
     };
-<<<<<<< HEAD
-    let guilds_config = counter_lock.read().await;
-    let gconfig_lock = guilds_config.get(&msg.guild_id.unwrap().0).unwrap();
-    let config = {
-=======
 
     let guilds_config = counter_lock.read().await;
     let gconfig_lock = guilds_config.get(&msg.guild_id.unwrap().0).unwrap();
     let size_config = {
->>>>>>> dev
         let gconfig = gconfig_lock.lock().await;
 
         if !gconfig.auto_magnitute_enable {
@@ -82,11 +76,7 @@ pub async fn auto_send_transfered_image(ctx: &Context, msg: &Message) {
     let (is_png, img_url) = filtered.unwrap();
 
     let files = [if is_png {
-<<<<<<< HEAD
-        get_resized_image(ctx, img_url.as_str(), &config).await
-=======
         get_resized_image(ctx, img_url.as_str(), &size_config).await
->>>>>>> dev
     } else {
         CreateAttachment::url(&ctx.http, img_url.as_str())
             .await
