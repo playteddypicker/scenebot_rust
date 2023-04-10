@@ -2,4 +2,8 @@
 Cargo.lock
 .env
 .DS_Store
+<<<<<<< HEAD
 log.txt
+=======
+out.gif
+>>>>>>> dev

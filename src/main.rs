@@ -34,7 +34,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let intents =
         GatewayIntents::GUILDS | GatewayIntents::GUILD_MESSAGES | GatewayIntents::MESSAGE_CONTENT;
 
-    let client_uri = env::var("DB_URI").expect("couldn't' find db uri");
+    let client_uri = env::var("DB_URI").expect("couldn't find db uri");
     let options =
         ClientOptions::parse_with_resolver_config(&client_uri, ResolverConfig::cloudflare())
             .await?;

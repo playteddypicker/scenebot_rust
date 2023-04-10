@@ -53,7 +53,11 @@ lazy_static! {
         commands: HashMap::from([
             ("send", commands::send::get_command()),
             ("config", commands::config::get_command()),
+<<<<<<< HEAD
             ("help", commands::help::get_command())
+=======
+            ("webp", commands::webp_transfer::get_command())
+>>>>>>> dev
         ])
     };
 }

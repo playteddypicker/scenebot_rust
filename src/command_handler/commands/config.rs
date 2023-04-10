@@ -62,6 +62,7 @@ impl CommandInterface for GuildConfigSetting {
         };
         let command = command.clone();
 
+<<<<<<< HEAD
         match command.get_response(&ctx.http).await {
             Ok(msg) => {
                 {
@@ -75,6 +76,172 @@ impl CommandInterface for GuildConfigSetting {
                                     .content("설정 정보를 가져오는데 실패했습니다."),
                             )
                             .await;
+=======
+        match guild_config {
+            None => {
+                command
+                    .edit_response(
+                        &ctx.http,
+                        EditInteractionResponse::new()
+                            .content("설정 정보를 가져오는데 실패했습니다."),
+                    )
+                    .await
+            }
+            Some(gc) => {
+                let mut gclock = gc.lock().await;
+                if let Err(why) = command
+                    .edit_response(
+                        &ctx.http,
+                        EditInteractionResponse::new()
+                            .embed(config_embed(
+                                gclock.auto_magnitute_enable,
+                                gclock.auto_transfer_webp,
+                                gclock.auto_magnitute_config.clone(),
+                            ))
+                            .components(vec![CreateActionRow::Buttons(Vec::from(
+                                config_components(),
+                            ))]),
+                    )
+                    .await
+                {
+                    error!("Failed to response slash command: {:#?}", why);
+                };
+
+                match command.get_response(&ctx.http).await {
+                    Ok(msg) => {
+                        let mut interaction_stream = msg
+                            .await_component_interactions(ctx)
+                            .timeout(Duration::from_secs(60 * 5))
+                            .filter(move |f| {
+                                f.message.id == msg.id
+                        //is_some_and 업뎃 후 코드를 다음과 같이 변경
+                        // f.member.is_some_and(|&m| m.user.id == interaction.user.id)
+                        && f.member.as_ref().unwrap().user.id == command.user.id
+                            })
+                            .stream();
+
+                        if let Some(button_reaction) = interaction_stream.next().await {
+                            match button_reaction.data.custom_id.as_str() {
+                                "autoemoji_enabled" => {
+                                    if let Err(why) = button_reaction
+                                        .create_response(
+                                            &ctx.http,
+                                            CreateInteractionResponse::UpdateMessage(
+                                                CreateInteractionResponseMessage::new()
+                                                    .content(
+                                                        match gclock.auto_magnitute_enable { 
+                                                            false => {
+                                                                gclock.auto_magnitute_enable = true;
+                                                                "자동 이모지 크기 조절이 켜졌습니다.\n이제 이모지를 전송하면 설정해둔 크기에 맞게 자동으로 봇이 변환해줍니다." 
+                                                            },
+                                                            true => {
+                                                                gclock.auto_magnitute_enable = false;
+                                                                "자동 이모지 크기 조절이 꺼졌습니다."
+                                                            } 
+                                                        }
+                                                    ).components(vec![]).embeds(vec![])
+                                            ),
+                                        )
+                                            .await {
+                                                error!("sending error: {:?}", why);
+                                            }
+                                }
+                                "autowebp_enabled" => {
+                                if let Err(why) = button_reaction
+                                    .create_response(
+                                        &ctx.http,
+                                        CreateInteractionResponse::UpdateMessage(
+                                            CreateInteractionResponseMessage::new()
+                                                .content(
+                                                    match gclock.auto_transfer_webp { 
+                                                        false => {
+                                                            gclock.auto_transfer_webp = true;
+                                                            "자동 WebP 변환이 켜졌습니다.\n이제 WebP 움짤을 전송하면 자동으로 gif로 변환됩니다." 
+                                                        },
+                                                        true => {
+                                                            gclock.auto_transfer_webp = false;
+                                                            "자동 WebP 변환이 꺼졌습니다."
+                                                        } 
+                                                    }
+                                                ).components(vec![]).embeds(vec![])
+                                        ),
+                                    )
+                                        .await {
+                                            error!("sending error: {:?}", why);
+                                        }
+                                }
+                                _ => {
+                                    if let Err(why) = button_reaction
+                                        .create_response(
+                                            &ctx.http,
+                                            CreateInteractionResponse::UpdateMessage(
+                                                CreateInteractionResponseMessage::new()
+                                                    .content(size_notice())
+                                                    .components(Vec::from(size_components()))
+                                                    .embeds(vec![])
+                                                    .add_files(
+                                                        [
+                                                            CreateAttachment::url(&ctx.http, EXAMPLE_IMAGES[0]).await.unwrap(),
+                                                            CreateAttachment::url(&ctx.http, EXAMPLE_IMAGES[1]).await.unwrap(),
+                                                            CreateAttachment::url(&ctx.http, EXAMPLE_IMAGES[2]).await.unwrap(),
+                                                            CreateAttachment::url(&ctx.http, EXAMPLE_IMAGES[3]).await.unwrap(),
+                                                            CreateAttachment::url(&ctx.http, EXAMPLE_IMAGES[4]).await.unwrap(),
+                                                        ]
+                                                    )
+                                            ),
+                                        )
+                                            .await {
+                                                error!("sending error: {:?}", why);
+                                            }
+                                    let msg = button_reaction.get_response(&ctx.http).await.unwrap();
+                                    let mut interaction_stream = msg
+                                        .await_component_interactions(ctx)
+                                        .timeout(Duration::from_secs(60 * 5))
+                                        .filter(move |f| {
+                                            f.message.id == msg.id
+                                         && f.member.as_ref().unwrap().user.id == command.user.id
+                                        }).stream();
+                                        
+                                    if let Some(sizebutton_reaction) = interaction_stream.next().await {
+                                        let size = match sizebutton_reaction.data.custom_id.as_str() {
+                                            "setemoji_smallest" => ImageSize::HyperTechniqueOfLisaSuFinger,
+                                            "setemoji_small" => ImageSize::Small,
+                                            "setemoji_medium" => ImageSize::Medium,
+                                            "setemoji_large" => ImageSize::Large,
+                                            "setemoji_largest" => ImageSize::HyperSuperUltraSexFeaturedFuckingLarge,
+                                            _ => ImageSize::Auto,
+                                        };
+                                        gclock.auto_magnitute_config = size;
+                                    }
+                                }
+                            }
+                        }
+                        //ㅅㅂ 지금은 어쩔수없음. 일단 커맨드에 fetch하는식은 나중으로 미루고
+                        //일단은 이렇게 조치함.
+                        let client_uri = env::var("DB_URI").expect("couldn't' find db uri");
+                        let options =
+                            ClientOptions::parse_with_resolver_config(&client_uri, ResolverConfig::cloudflare())
+                                .await.unwrap();
+
+                        let db_client = DBClient::with_options(options).unwrap();
+
+                        let collections: Collection<Document> = db_client.database("scene").collection(env::var("BOT_DB_NAME").unwrap().as_str());
+                        collections.find_one_and_update(
+                            doc! {
+                                "guild_id" : gclock.guild_id.get() as f64
+                            }, 
+                            doc! {
+                                "$set" : {
+                                    "guild_id" : gclock.guild_id.get() as f64,
+                                    "auto_magnitute_enable" : gclock.auto_magnitute_enable,
+                                    "auto_magnitute_config" : ImageSize::value_to_string(&(gclock.auto_magnitute_config)),
+                                    "auto_transfer_webp" : gclock.auto_transfer_webp
+                                }
+                            }, None
+                        ).await.unwrap();
+                        
+                        Ok(msg)
+>>>>>>> dev
                     }
 
                     let gc = guild_config.unwrap();
@@ -261,7 +428,7 @@ impl CommandInterface for GuildConfigSetting {
     }
 }
 
-fn config_embed(autoemoji: bool, default_emoji_size: ImageSize) -> CreateEmbed {
+fn config_embed(autoemoji: bool, autowebpsend: bool, default_emoji_size: ImageSize) -> CreateEmbed {
     CreateEmbed::new()
         .title("봇 설정")
         .description("설정하고 싶은 것을 선택해주세요")
@@ -269,6 +436,14 @@ fn config_embed(autoemoji: bool, default_emoji_size: ImageSize) -> CreateEmbed {
             (
                 "자동 이모지 크기 조절 설정 : 켜져있으면 끄고, 꺼져있으면 킵니다.",
                 match autoemoji {
+                    true => "현재 상태 : 켜짐",
+                    false => "현재 상태 : 꺼짐",
+                },
+                false,
+            ),
+            (
+                "자동 WebP 변환 전송 설정 : 켜져있으면 끄고, 꺼져있으면 킵니다.",
+                match autowebpsend {
                     true => "현재 상태 : 켜짐",
                     false => "현재 상태 : 꺼짐",
                 },
@@ -290,10 +465,13 @@ fn config_embed(autoemoji: bool, default_emoji_size: ImageSize) -> CreateEmbed {
         .color((255, 255, 255))
 }
 
-fn config_components() -> [CreateButton; 2] {
+fn config_components() -> [CreateButton; 3] {
     [
         CreateButton::new("autoemoji_enabled")
             .label("자동 이모지 크기 조절 켜거나 끄기")
+            .style(ButtonStyle::Primary),
+            CreateButton::new("autowebp_enabled")
+            .label("WebP 자동 변환 전송 켜거나 끄기")
             .style(ButtonStyle::Primary),
         CreateButton::new("set_default_autoemoji_size")
             .label("크기 기본값 설정하기")

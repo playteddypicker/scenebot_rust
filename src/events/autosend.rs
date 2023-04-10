@@ -3,12 +3,12 @@ use regex::Regex;
 use serenity::{
     builder::{CreateAttachment, CreateMessage},
     client::Context,
-    model::channel::Message,
+    model::channel::{Message, MessageReference},
 };
 
 use crate::GlobalGuildConfigs;
 
-use crate::utils::scene_core::{get_resized_image, EmojiFilter};
+use crate::utils::scene_core::{get_resized_image, webp_transfer, EmojiFilter};
 
 impl EmojiFilter for Message {
     fn emoji_format_filter(&self) -> Result<(bool, String), ()> {
@@ -55,9 +55,16 @@ pub async fn auto_send_transfered_image(ctx: &Context, msg: &Message) {
             .expect("poisened")
             .clone()
     };
+<<<<<<< HEAD
     let guilds_config = counter_lock.read().await;
     let gconfig_lock = guilds_config.get(&msg.guild_id.unwrap().0).unwrap();
     let config = {
+=======
+
+    let guilds_config = counter_lock.read().await;
+    let gconfig_lock = guilds_config.get(&msg.guild_id.unwrap().0).unwrap();
+    let size_config = {
+>>>>>>> dev
         let gconfig = gconfig_lock.lock().await;
 
         if !gconfig.auto_magnitute_enable {
@@ -71,10 +78,15 @@ pub async fn auto_send_transfered_image(ctx: &Context, msg: &Message) {
     if let Err(why) = delresult {
         error!("couldn't delete message. {:?}", why);
     }
+
     let (is_png, img_url) = filtered.unwrap();
 
     let files = [if is_png {
+<<<<<<< HEAD
         get_resized_image(ctx, img_url.as_str(), &config).await
+=======
+        get_resized_image(ctx, img_url.as_str(), &size_config).await
+>>>>>>> dev
     } else {
         CreateAttachment::url(&ctx.http, img_url.as_str())
             .await
@@ -102,4 +114,45 @@ pub async fn auto_send_transfered_image(ctx: &Context, msg: &Message) {
     {
         error!("send message error: {}", why);
     };
+}
+
+pub async fn auto_send_webp_image(ctx: &Context, msg: &Message) {
+    //webp 아니거나 attachment 없으면 리턴
+    if msg.attachments.len() != 1
+        || msg.attachments.get(0).is_none()
+        || !msg.attachments.get(0).unwrap().url.ends_with(".webp")
+    {
+        return;
+    }
+
+    let counter_lock = {
+        let data_read = ctx.data.read().await;
+        data_read
+            .get::<GlobalGuildConfigs>()
+            .expect("poisened")
+            .clone()
+    };
+
+    let guilds_config = counter_lock.write().await;
+
+    let gconfig_lock = guilds_config.get(&msg.guild_id.unwrap().0).unwrap();
+    let gconfig = gconfig_lock.lock().await;
+    if !gconfig.auto_transfer_webp {
+        return;
+    }
+
+    if let Ok(transfered) = webp_transfer(msg.attachments[0].url.clone(), true).await {
+        if let Err(why) = msg
+            .channel_id
+            .send_message(
+                &ctx.http,
+                CreateMessage::new()
+                    .add_file(transfered)
+                    .reference_message(MessageReference::from(msg)),
+            )
+            .await
+        {
+            error!("auto webp transfer error. {:?}", why);
+        }
+    }
 }
