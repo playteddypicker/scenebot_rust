@@ -11,6 +11,7 @@ pub struct GuildConfig {
     pub guild_id: NonZeroU64,
     pub auto_magnitute_enable: bool,
     pub auto_magnitute_config: ImageSize,
+    pub auto_transfer_webp: bool,
 }
 
 impl GuildConfig {
@@ -19,6 +20,7 @@ impl GuildConfig {
             guild_id: guild.0,
             auto_magnitute_enable: false,
             auto_magnitute_config: ImageSize::Auto,
+            auto_transfer_webp: false,
         }
     }
 
@@ -26,11 +28,13 @@ impl GuildConfig {
         guild: &GuildId,
         auto_magnitute_enable_input: bool,
         auto_magnitute_config_input: ImageSize,
+        auto_transfer_webp_input: bool,
     ) -> Self {
         Self {
             guild_id: guild.0,
             auto_magnitute_enable: auto_magnitute_enable_input,
             auto_magnitute_config: auto_magnitute_config_input,
+            auto_transfer_webp: auto_transfer_webp_input,
         }
     }
 
@@ -87,6 +91,7 @@ impl GuildConfig {
                             ImageSize::string_to_value(
                                 document.get_str("auto_magnitute_config").unwrap_or("Auto"),
                             ),
+                            document.get_bool("auto_transfer_webp").unwrap_or(false),
                         ),
                         None => {
                             if let Err(why) = collections
@@ -95,6 +100,7 @@ impl GuildConfig {
                                             "guild_id" : guild.0.get() as f64,
                                             "auto_magnitute_enable" : false,
                                             "auto_magnitute_config" : "Auto",
+                                            "auto_transfer_webp": false,
                                     },
                                     None,
                                 )

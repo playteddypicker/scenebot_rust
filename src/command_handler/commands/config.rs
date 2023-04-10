@@ -82,6 +82,7 @@ impl CommandInterface for GuildConfigSetting {
                         EditInteractionResponse::new()
                             .embed(config_embed(
                                 gclock.auto_magnitute_enable,
+                                gclock.auto_transfer_webp,
                                 gclock.auto_magnitute_config.clone(),
                             ))
                             .components(vec![CreateActionRow::Buttons(Vec::from(
@@ -131,6 +132,30 @@ impl CommandInterface for GuildConfigSetting {
                                             .await {
                                                 error!("sending error: {:?}", why);
                                             }
+                                }
+                                "autowebp_enabled" => {
+                                if let Err(why) = button_reaction
+                                    .create_response(
+                                        &ctx.http,
+                                        CreateInteractionResponse::UpdateMessage(
+                                            CreateInteractionResponseMessage::new()
+                                                .content(
+                                                    match gclock.auto_transfer_webp { 
+                                                        false => {
+                                                            gclock.auto_transfer_webp = true;
+                                                            "자동 WebP 변환이 켜졌습니다.\n이제 WebP 움짤을 전송하면 자동으로 gif로 변환됩니다." 
+                                                        },
+                                                        true => {
+                                                            gclock.auto_transfer_webp = false;
+                                                            "자동 WebP 변환이 꺼졌습니다."
+                                                        } 
+                                                    }
+                                                ).components(vec![]).embeds(vec![])
+                                        ),
+                                    )
+                                        .await {
+                                            error!("sending error: {:?}", why);
+                                        }
                                 }
                                 _ => {
                                     if let Err(why) = button_reaction
@@ -197,6 +222,7 @@ impl CommandInterface for GuildConfigSetting {
                                     "guild_id" : gclock.guild_id.get() as f64,
                                     "auto_magnitute_enable" : gclock.auto_magnitute_enable,
                                     "auto_magnitute_config" : ImageSize::value_to_string(&(gclock.auto_magnitute_config)),
+                                    "auto_transfer_webp" : gclock.auto_transfer_webp
                                 }
                             }, None
                         ).await.unwrap();
@@ -223,7 +249,7 @@ impl CommandInterface for GuildConfigSetting {
     }
 }
 
-fn config_embed(autoemoji: bool, default_emoji_size: ImageSize) -> CreateEmbed {
+fn config_embed(autoemoji: bool, autowebpsend: bool, default_emoji_size: ImageSize) -> CreateEmbed {
     CreateEmbed::new()
         .title("봇 설정")
         .description("설정하고 싶은 것을 선택해주세요")
@@ -231,6 +257,14 @@ fn config_embed(autoemoji: bool, default_emoji_size: ImageSize) -> CreateEmbed {
             (
                 "자동 이모지 크기 조절 설정 : 켜져있으면 끄고, 꺼져있으면 킵니다.",
                 match autoemoji {
+                    true => "현재 상태 : 켜짐",
+                    false => "현재 상태 : 꺼짐",
+                },
+                false,
+            ),
+            (
+                "자동 WebP 변환 전송 설정 : 켜져있으면 끄고, 꺼져있으면 킵니다.",
+                match autowebpsend {
                     true => "현재 상태 : 켜짐",
                     false => "현재 상태 : 꺼짐",
                 },
@@ -252,10 +286,13 @@ fn config_embed(autoemoji: bool, default_emoji_size: ImageSize) -> CreateEmbed {
         .color((255, 255, 255))
 }
 
-fn config_components() -> [CreateButton; 2] {
+fn config_components() -> [CreateButton; 3] {
     [
         CreateButton::new("autoemoji_enabled")
             .label("자동 이모지 크기 조절 켜거나 끄기")
+            .style(ButtonStyle::Primary),
+            CreateButton::new("autowebp_enabled")
+            .label("WebP 자동 변환 전송 켜거나 끄기")
             .style(ButtonStyle::Primary),
         CreateButton::new("set_default_autoemoji_size")
             .label("크기 기본값 설정하기")
