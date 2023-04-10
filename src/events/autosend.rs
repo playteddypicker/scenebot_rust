@@ -132,6 +132,10 @@ pub async fn auto_send_webp_image(ctx: &Context, msg: &Message) {
         return;
     }
 
+    if msg.attachments[0].size > 1024 * 1024 * 10 {
+        return;
+    }
+
     let now = Instant::now();
 
     if let Ok(transfered) = webp_transfer(msg.attachments[0].url.clone(), true).await {
