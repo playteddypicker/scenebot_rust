@@ -32,9 +32,9 @@ use log::error;
 use std::{time::Duration, env};
 
 const EXAMPLE_IMAGES: [&str; 5] = [
-    "https://media.discordapp.net/attachments/892675167208235058/1075091245216575669/resized.png",
-    "https://media.discordapp.net/attachments/892675167208235058/1075091361604309093/resized.png",
-    "https://media.discordapp.net/attachments/892675167208235058/1075091479581696070/resized.png",
+    "https://cdn.discordapp.com/emojis/1075091165285715968.webp?size=16",
+    "https://cdn.discordapp.com/emojis/1075091165285715968.webp?size=64",
+    "https://cdn.discordapp.com/emojis/1075091165285715968.webp?size=128",
     "https://media.discordapp.net/attachments/892675167208235058/1075091557746757662/resized.png",
     "https://media.discordapp.net/attachments/892675167208235058/1075091654308024330/resized.png",
 ];
@@ -199,6 +199,28 @@ impl CommandInterface for GuildConfigSetting {
                                             _ => ImageSize::Auto,
                                         };
                                         gclock.auto_magnitute_config = size;
+                                        if let Err(why) = sizebutton_reaction
+                                        .create_response(
+                                            &ctx.http,
+                                            CreateInteractionResponse::UpdateMessage(
+                                                CreateInteractionResponseMessage::new()
+                                                    .content(
+                                                        format!("자동 이모지 변환 사이즈를 {}(으)로 설정했습니다.", 
+                                                            match sizebutton_reaction.data.custom_id.as_str() {
+                                                                "setemoji_smallest" => "절라 짝게",
+                                                                "setemoji_small" => "작게",
+                                                                "setemoji_medium" => "중간",
+                                                                "setemoji_large" => "크게",
+                                                                "setemoji_largest" => "존,나 크게",
+                                                                _ => "자동"
+                                                            })
+                                                    ).components(vec![]).embeds(vec![]).files(vec![])
+                                            ),
+                                        )
+                                        .await {
+                                            error!("sending error: {:?}", why);
+                                        }
+
                                     }
                                 }
                             }

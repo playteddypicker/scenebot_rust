@@ -6,6 +6,7 @@ use serenity::{
     model::channel::{Message, MessageReference},
 };
 
+use crate::utils::scene_core::ImageSize::{Auto, HyperTechniqueOfLisaSuFinger, Medium, Small};
 use crate::GlobalGuildConfigs;
 
 use crate::utils::scene_core::{get_resized_image, webp_transfer, EmojiFilter};
@@ -33,7 +34,7 @@ impl EmojiFilter for Message {
                         "gif"
                     } else {
                         is_png = true;
-                        "png"
+                        "webp"
                     }
                 );
                 Ok((is_png, img_url))
@@ -76,20 +77,21 @@ pub async fn auto_send_transfered_image(ctx: &Context, msg: &Message) {
 
     let (is_png, img_url) = filtered.unwrap();
 
-    let files = [if is_png {
-        get_resized_image(ctx, img_url.as_str(), &size_config).await
-    } else {
-        CreateAttachment::url(&ctx.http, img_url.as_str())
-            .await
-            .unwrap()
-    }];
-
-    if let Err(why) = msg
-        .channel_id
-        .send_files(
-            &ctx.http,
-            files,
-            CreateMessage::new().content(
+    //webp png로 보낼수있는거
+    if let Err(why) = if is_png
+        && matches!(
+            size_config,
+            HyperTechniqueOfLisaSuFinger | Small | Medium | Auto
+        ) {
+        let size = match size_config {
+            HyperTechniqueOfLisaSuFinger => "?size=16",
+            Small => "?size=64",
+            Medium => "?size=256",
+            _ => "",
+        };
+        msg.channel_id
+            .say(
+                &ctx.http,
                 "**".to_owned()
                     + match &msg.member {
                         Some(m) => match &m.nick {
@@ -99,12 +101,38 @@ pub async fn auto_send_transfered_image(ctx: &Context, msg: &Message) {
                         None => &msg.author.name,
                     }
                     + "** :",
-            ),
-        )
-        .await
-    {
+            )
+            .await
+            .unwrap();
+        msg.channel_id.say(&ctx.http, img_url + size).await
+    } else {
+        let files = [if is_png {
+            get_resized_image(ctx, img_url.as_str(), &size_config).await
+        } else {
+            CreateAttachment::url(&ctx.http, img_url.as_str())
+                .await
+                .unwrap()
+        }];
+        msg.channel_id
+            .send_files(
+                &ctx.http,
+                files,
+                CreateMessage::new().content(
+                    "**".to_owned()
+                        + match &msg.member {
+                            Some(m) => match &m.nick {
+                                Some(nick) => nick,
+                                None => &msg.author.name,
+                            },
+                            None => &msg.author.name,
+                        }
+                        + "** :",
+                ),
+            )
+            .await
+    } {
         error!("send message error: {}", why);
-    };
+    }
 }
 
 pub async fn auto_send_webp_image(ctx: &Context, msg: &Message) {

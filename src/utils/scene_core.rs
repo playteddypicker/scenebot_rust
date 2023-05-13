@@ -64,6 +64,7 @@ pub async fn get_resized_image(
     img_size: &ImageSize,
 ) -> CreateAttachment {
     match img_size {
+        //여기부터는 작동 안함. dead code인데.. 나중에 고치기
         ImageSize::Auto => CreateAttachment::url(ctx.http.clone(), img_url)
             .await
             .unwrap(),
@@ -91,6 +92,7 @@ pub async fn get_resized_image(
             )
             .await
         }
+        //여기까지 dead code
         ImageSize::Large => {
             resize_png(
                 img_url,
