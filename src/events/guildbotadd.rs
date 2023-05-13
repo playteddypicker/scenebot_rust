@@ -45,7 +45,7 @@ pub async fn new_guild_added(ctx: &Context, guild: &Guild, is_new: Option<bool>)
 
     if let Err(why) = guild
         .id
-        .create_application_command(
+        .create_command(
             &ctx.http,
             CreateCommand::new("update")
                 .description("봇의 업데이트를 확인해요")

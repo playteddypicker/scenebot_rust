@@ -12,7 +12,7 @@ pub enum UpdateStatus {
 
 //Version을 파라미터로 업데이트하게끔 변경
 pub async fn check_updates(ctx: &Context, gid: GuildId) -> UpdateStatus {
-    match gid.get_application_commands(&ctx.http).await {
+    match gid.get_commands(&ctx.http).await {
         Ok(cmds) => {
             let mut guild_cmds_list = cmds
                 .clone()
