@@ -78,11 +78,10 @@ pub async fn auto_send_transfered_image(ctx: &Context, msg: &Message) {
     let (is_png, img_url) = filtered.unwrap();
 
     //webp png로 보낼수있는거
-    if let Err(why) = if is_png
-        && matches!(
-            size_config,
-            HyperTechniqueOfLisaSuFinger | Small | Medium | Auto
-        ) {
+    if let Err(why) = if matches!(
+        size_config,
+        HyperTechniqueOfLisaSuFinger | Small | Medium | Auto
+    ) {
         let size = match size_config {
             HyperTechniqueOfLisaSuFinger => "?size=16",
             Small => "?size=64",
@@ -144,6 +143,10 @@ pub async fn auto_send_webp_image(ctx: &Context, msg: &Message) {
         return;
     }
 
+    if msg.attachments[0].size > 1024 * 1024 * 10 {
+        return;
+    }
+
     let counter_lock = {
         let data_read = ctx.data.read().await;
         data_read
@@ -157,10 +160,6 @@ pub async fn auto_send_webp_image(ctx: &Context, msg: &Message) {
     let gconfig_lock = guilds_config.get(&msg.guild_id.unwrap().0).unwrap();
     let gconfig = gconfig_lock.lock().await;
     if !gconfig.auto_transfer_webp {
-        return;
-    }
-
-    if msg.attachments[0].size > 1024 * 1024 * 10 {
         return;
     }
 

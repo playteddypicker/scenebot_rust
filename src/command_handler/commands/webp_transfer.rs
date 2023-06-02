@@ -43,8 +43,8 @@ impl CommandInterface for WebPTransfer {
                 .unwrap()
                 .premium_tier
             {
-                PremiumTier::Tier3 => 100,
-                PremiumTier::Tier2 => 50,
+                PremiumTier::Tier3 => 50,
+                PremiumTier::Tier2 => 25,
                 _ => 10,
             };
 
@@ -58,6 +58,7 @@ impl CommandInterface for WebPTransfer {
                             transfered.data.len() as f64 / 1024.0 / 1024.0
                         );
                         if transfered.data.len() > 1024 * 1024 * max_size_mb {
+                            drop(transfered);
                             EditInteractionResponse::new()
                             .content("변환된 이미지의 크기가 너무 큽니다.\n용량 제한을 늘리려면 서버 부스트를 이용해주세요.\n최대 용량 제한은 레벨 3 부스트 기준 100MB입니다.")
                         } else {
