@@ -2,13 +2,13 @@ use serenity::{
     async_trait,
     builder::{
         CreateActionRow, CreateButton, CreateApplicationCommand, CreateEmbed, CreateInteractionResponse,
-        CreateInteractionResponseData, EditInteractionResponse, CreateComponents
+        CreateInteractionResponseData, EditInteractionResponse,
     },
     client::Context,
     futures::StreamExt,
     model::{
         channel::AttachmentType,
-        application::{component::ButtonStyle, CommandDataOption, CommandInteraction},
+        application::{ButtonStyle, CommandDataOption, CommandInteraction},
         permissions::PermData,
         prelude::Message,
     },
@@ -86,11 +86,10 @@ impl CommandInterface for GuildConfigSetting {
                                 gclock.auto_transfer_webp,
                                 gclock.auto_magnitute_config.clone(),
                             ))
-                            .set_components(
-                                CreateComponents::default()
-                                .add_action_row(config_components()).clone()
-                            )
-                        )
+                            .components(vec![CreateActionRow::Buttons(Vec::from(
+                                config_components(),
+                            ))]),
+                    )
                     .await
                 {
                     error!("Failed to response slash command: {:#?}", why);
@@ -312,25 +311,18 @@ fn config_embed(autoemoji: bool, autowebpsend: bool, default_emoji_size: ImageSi
         .color((255, 255, 255)).clone()
 }
 
-fn config_components() -> CreateActionRow {
-    CreateActionRow::default()
-        .add_button(
-            CreateButton::default()
-                .custom_id("autoemoji_enabled")
-                .label("자동 이모지 크기 조절 켜거나 끄기")
-                .style(ButtonStyle::Primary)
-                .clone())
-        .add_button(
-            CreateButton::default()
-                .custom_id("autowebp_enabled")
-                .label("WebP 자동 변환 전송 켜거나 끄기")
-                .style(ButtonStyle::Primary).clone())
-        .add_button(
-            CreateButton::default()
-                .custom_id("set_default_autoemoji_size")
-                .label("크기 기본값 설정하기")
-                .style(ButtonStyle::Secondary).clone())
-        .clone()
+fn config_components() -> [CreateButton; 3] {
+    [
+        CreateButton::new("autoemoji_enabled")
+            .label("자동 이모지 크기 조절 켜거나 끄기")
+            .style(ButtonStyle::Primary),
+            CreateButton::new("autowebp_enabled")
+            .label("WebP 자동 변환 전송 켜거나 끄기")
+            .style(ButtonStyle::Primary),
+        CreateButton::new("set_default_autoemoji_size")
+            .label("크기 기본값 설정하기")
+            .style(ButtonStyle::Secondary),
+    ]
 }
 
 fn size_notice() -> String {
@@ -344,29 +336,28 @@ fn size_notice() -> String {
 }
 
 fn size_components() -> [CreateActionRow; 2] {
-    [CreateActionRow::default()
-        .add_button(CreateButton::default()
-            .custom_id("setemoji_smallest")
-            .label("절라 짝게")
-            .style(ButtonStyle::Danger).clone())
-        .add_button(|b| 
-            b.custom_id("setemoji_small")
+    [CreateActionRow::create_button(|btn| btn.custom_id().label().style()
+    ).add_button(
+    CreateButton::default()
+    .custom_id("setemoji_small").label("작게").style(ButtonStyle::Secondary)
+    ).build()]
+    [*CreateActionRow::add_button(vec![
+        ,
+        CreateButton::new("setemoji_small")
             .label("작게")
-            .style(ButtonStyle::Secondary))
-        .add_button(|b| 
-            b.custom_id("setemoji_medium")
+            .style(ButtonStyle::Secondary),
+        CreateButton::new("setemoji_medium")
             .label("중간")
-            .style(ButtonStyle::Secondary))
-        .add_button(|b| b.custom_id("setemoji_large")
+            .style(ButtonStyle::Secondary),
+        CreateButton::new("setemoji_large")
             .label("크게")
-            .style(ButtonStyle::Secondary))
-        .add_button(|b| b.custom_id("setemoji_largest")
+            .style(ButtonStyle::Secondary),
+        CreateButton::new("setemoji_largest")
             .label("존,나크게")
-            .style(ButtonStyle::Danger)).clone(),
-    CreateActionRow::default()
-        .add_button(|b|
-            b.custom_id("setemoji_auto")
+            .style(ButtonStyle::Danger),
+    ]), CreateActionRow::Buttons(vec![
+        CreateButton::new("setemoji_auto")
             .label("자동")
-            .style(ButtonStyle::Primary)).clone()
-    ]
+            .style(ButtonStyle::Primary),
+    ])]
 }
