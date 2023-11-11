@@ -1,9 +1,14 @@
 use serenity::{
     async_trait,
-    builder::{CreateCommand, CreateCommandOption, EditInteractionResponse},
+    builder::{
+        CreateApplicationCommand, CreateApplicationCommandOption, CreateInteractionResponse,
+        CreateInteractionResponseData, EditInteractionResponse,
+    },
     client::Context,
     model::{
-        application::{CommandDataOption, CommandInteraction, CommandOptionType},
+        application::interaction::application_command::{
+            ApplicationCommandInteraction, CommandDataOption, CommandDataOptionValue,
+        },
         permissions::Permissions,
         prelude::Message,
     },
@@ -27,27 +32,25 @@ impl CommandInterface for SendSizedEmoji {
         &self,
         ctx: &Context,
         options: &[CommandDataOption],
-        command: &CommandInteraction,
+        command: &ApplicationCommandInteraction,
     ) -> Result<Message, Error> {
-        let emoji = options[0].value.as_str();
-        let size_num = options[1].value.as_i64();
+        let emoji = options[0].value.unwrap().as_str();
+        let size_num = options[1].value.unwrap().as_i64();
 
         if size_num.is_none() || emoji.is_none() {
             return command
-                .edit_response(
-                    &ctx.http,
-                    EditInteractionResponse::new().content("명령어를 조건에 맞게 입력해주세요"),
-                )
+                .edit_original_interaction_response(&ctx.http, |_| {
+                    EditInteractionResponse::default().content("명령어를 조건에 맞게 입력해주세요")
+                })
                 .await;
         }
 
         let filtered = emoji.unwrap().emoji_format_filter();
         if filtered.is_err() {
             return command
-                .edit_response(
-                    &ctx.http,
-                    EditInteractionResponse::new().content("제대로 된 이모지를 입력해주세요"),
-                )
+                .edit_original_interaction_response(&ctx.http, |_| {
+                    EditInteractionResponse::default().content("제대로 된 이모지를 입력해주세요")
+                })
                 .await;
         }
         let (is_png, img_url) = filtered.unwrap();
@@ -69,10 +72,11 @@ impl CommandInterface for SendSizedEmoji {
         .await;
 
         command
-            .edit_response(
-                &ctx.http,
-                EditInteractionResponse::new().new_attachment(resized_emoji),
-            )
+            .create_interaction_response(&ctx.http, |_| {
+                CreateInteractionResponse::default().interaction_response_data(|_| {
+                    CreateInteractionResponseData::default().add_file(resized_emoji)
+                })
+            })
             .await
     }
 
@@ -80,7 +84,7 @@ impl CommandInterface for SendSizedEmoji {
         String::from("send")
     }
 
-    fn register(&self) -> CreateCommand {
+    fn register(&self) -> CreateApplicationCommand {
         let options = Vec::from([
             CreateCommandOption::new(
                 CommandOptionType::String,

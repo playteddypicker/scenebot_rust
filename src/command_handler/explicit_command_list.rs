@@ -2,18 +2,27 @@ use lazy_static::lazy_static;
 use log::error;
 use serenity::{
     async_trait,
-    builder::CreateCommand,
+    builder::CreateApplicationCommand,
     client::Context,
     model::{
-        application::{CommandDataOption, CommandInteraction},
+        application::interaction::application_command::{
+            ApplicationCommandInteraction, CommandDataOption,
+        },
         id::GuildId,
         prelude::Message,
     },
     Error,
 };
+
+use std::borrow::BorrowMut;
 use std::collections::HashMap;
 
 use super::commands;
+
+pub enum CommandResponseReturnType {
+    Message(Message),
+    Empty,
+}
 
 #[async_trait]
 pub trait CommandInterface {
@@ -21,12 +30,12 @@ pub trait CommandInterface {
         &self,
         ctx: &Context,
         options: &[CommandDataOption],
-        command: &CommandInteraction,
-    ) -> Result<Message, Error>;
+        command: &ApplicationCommandInteraction,
+    ) -> Result<CommandResponseReturnType, Error>;
 
     fn name(&self) -> String;
 
-    fn register(&self) -> CreateCommand;
+    fn register(&self) -> CreateApplicationCommand;
 }
 
 pub struct CommandList {
@@ -36,7 +45,10 @@ pub struct CommandList {
 impl CommandList {
     pub async fn register_commands(&'static self, gid: GuildId, ctx: &Context) {
         for (_, cmd) in &self.commands {
-            if let Err(why) = gid.create_command(&ctx.http, cmd.register()).await {
+            if let Err(why) = gid
+                .create_application_command(&ctx.http, |_| cmd.register().borrow_mut())
+                .await
+            {
                 error!("Couldn't create application command: {:#?}", why);
             }
         }

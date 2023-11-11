@@ -7,9 +7,13 @@ use serenity::{
     client::Context,
     futures::StreamExt,
     model::{
-        channel::AttachmentType,
-        application::{component::ButtonStyle, CommandDataOption, CommandInteraction},
-        permissions::PermData,
+        application::{
+            component::ButtonStyle, 
+            interaction::application_command::{
+                CommandDataOption,
+                ApplicationCommandInteraction
+            }},
+        permissions::Permissions,
         prelude::Message,
     },
     Error,
@@ -30,7 +34,7 @@ use crate::GlobalGuildConfigs;
 
 use log::error;
 
-use std::{time::Duration, env};
+use std::{time::Duration, env, num::NonZeroU64};
 
 const EXAMPLE_IMAGES: [&str; 5] = [
     "https://cdn.discordapp.com/emojis/1075091165285715968.webp?size=16",
@@ -52,7 +56,7 @@ impl CommandInterface for GuildConfigSetting {
         &self,
         ctx: &Context,
         _options: &[CommandDataOption],
-        command: &CommandInteraction,
+        command: &ApplicationCommandInteraction,
     ) -> Result<Message, Error> {
         let counter_lock = {
             let data_read = ctx.data.read().await;
@@ -63,14 +67,14 @@ impl CommandInterface for GuildConfigSetting {
         };
         let command = command.clone();
         let mut guilds_config = counter_lock.write().await;
-        let guild_config = guilds_config.get_mut(&command.guild_id.unwrap().0);
+        let guild_config = guilds_config.get_mut(&NonZeroU64::new(command.guild_id.unwrap().0).unwrap());
 
         match guild_config {
             None => {
                 command
-                    .edit_response(
+                    .edit_original_interaction_response(
                         &ctx.http,
-                        EditInteractionResponse::default()
+                        |_| EditInteractionResponse::default()
                             .content("설정 정보를 가져오는데 실패했습니다."),
                     )
                     .await
@@ -78,9 +82,9 @@ impl CommandInterface for GuildConfigSetting {
             Some(gc) => {
                 let mut gclock = gc.lock().await;
                 if let Err(why) = command
-                    .edit_response(
+                    .edit_original_interaction_response(
                         &ctx.http,
-                        EditInteractionResponse::default()
+                        |_| EditInteractionResponse::default()
                             .add_embed(config_embed(
                                 gclock.auto_magnitute_enable,
                                 gclock.auto_transfer_webp,
@@ -96,7 +100,7 @@ impl CommandInterface for GuildConfigSetting {
                     error!("Failed to response slash command: {:#?}", why);
                 };
 
-                match command.get_response(&ctx.http).await {
+                match command.get_interaction_response(&ctx.http).await {
                     Ok(msg) => {
                         let mut interaction_stream = msg
                             .await_component_interactions(ctx)
@@ -107,17 +111,17 @@ impl CommandInterface for GuildConfigSetting {
                         // f.member.is_some_and(|&m| m.user.id == interaction.user.id)
                         && f.member.as_ref().unwrap().user.id == command.user.id
                             })
-                            .stream();
+                            .build();
 
                         if let Some(button_reaction) = interaction_stream.next().await {
                             match button_reaction.data.custom_id.as_str() {
                                 "autoemoji_enabled" => {
                                     if let Err(why) = button_reaction
-                                        .create_response(
+                                        .create_interaction_response(
                                             &ctx.http,
-                                            CreateInteractionResponse::UpdateMessage(
-                                                CreateInteractionResponseData::new()
-                                                    .content(
+                                            |_| CreateInteractionResponse::default()
+                                                .interaction_response_data(
+                                                    |data| data.content(
                                                         match gclock.auto_magnitute_enable { 
                                                             false => {
                                                                 gclock.auto_magnitute_enable = true;
@@ -128,20 +132,20 @@ impl CommandInterface for GuildConfigSetting {
                                                                 "자동 이모지 크기 조절이 꺼졌습니다."
                                                             } 
                                                         }
-                                                    ).components(vec![]).embeds(vec![])
-                                            ),
+                                                    ),
+                                                )
                                         )
-                                            .await {
-                                                error!("sending error: {:?}", why);
-                                            }
+                                        .await {
+                                            error!("sending error: {:?}", why);
+                                        }
                                 }
                                 "autowebp_enabled" => {
                                 if let Err(why) = button_reaction
-                                    .create_response(
+                                    .create_interaction_response(
                                         &ctx.http,
-                                        CreateInteractionResponse::UpdateMessage(
-                                            CreateInteractionResponseData::new()
-                                                .content(
+                                        |_| CreateInteractionResponse::default()
+                                            .interaction_response_data(
+                                                |data| data.content(
                                                     match gclock.auto_transfer_webp { 
                                                         false => {
                                                             gclock.auto_transfer_webp = true;
@@ -152,7 +156,7 @@ impl CommandInterface for GuildConfigSetting {
                                                             "자동 WebP 변환이 꺼졌습니다."
                                                         } 
                                                     }
-                                                ).components(vec![]).embeds(vec![])
+                                                )
                                         ),
                                     )
                                         .await {
@@ -161,14 +165,12 @@ impl CommandInterface for GuildConfigSetting {
                                 }
                                 _ => {
                                     if let Err(why) = button_reaction
-                                        .create_response(
+                                        .create_interaction_response(
                                             &ctx.http,
-                                            CreateInteractionResponse::default()
+                                            |_| CreateInteractionResponse::default()
                                                 .interaction_response_data(
-                                                    CreateInteractionResponseData::default()
-                                                        .content(size_notice())
-                                                        .components(Vec::from(size_components()))
-                                                        .embeds(vec![])
+                                                    |data| data.content(size_notice())
+                                                        .set_components(size_component())
                                                         .add_files(
                                                             [
                                                                 EXAMPLE_IMAGES[0],
@@ -183,14 +185,14 @@ impl CommandInterface for GuildConfigSetting {
                                             .await {
                                                 error!("sending error: {:?}", why);
                                             }
-                                    let msg = button_reaction.get_response(&ctx.http).await.unwrap();
+                                    let msg = button_reaction.get_interaction_response(&ctx.http).await.unwrap();
                                     let mut interaction_stream = msg
                                         .await_component_interactions(ctx)
                                         .timeout(Duration::from_secs(60 * 5))
                                         .filter(move |f| {
                                             f.message.id == msg.id
                                          && f.member.as_ref().unwrap().user.id == command.user.id
-                                        }).stream();
+                                        }).build();
                                         
                                     if let Some(sizebutton_reaction) = interaction_stream.next().await {
                                         let size = match sizebutton_reaction.data.custom_id.as_str() {
@@ -203,22 +205,22 @@ impl CommandInterface for GuildConfigSetting {
                                         };
                                         gclock.auto_magnitute_config = size;
                                         if let Err(why) = sizebutton_reaction
-                                        .create_response(
+                                        .create_interaction_response(
                                             &ctx.http,
-                                            CreateInteractionResponse::UpdateMessage(
-                                                CreateInteractionResponseData::new()
-                                                    .content(
-                                                        format!("자동 이모지 변환 사이즈를 {}(으)로 설정했습니다.", 
-                                                            match sizebutton_reaction.data.custom_id.as_str() {
-                                                                "setemoji_smallest" => "절라 짝게",
-                                                                "setemoji_small" => "작게",
-                                                                "setemoji_medium" => "중간",
-                                                                "setemoji_large" => "크게",
-                                                                "setemoji_largest" => "존,나 크게",
-                                                                _ => "자동"
-                                                            })
-                                                    ).components(vec![]).embeds(vec![]).files(vec![])
-                                            ),
+                                            |_| CreateInteractionResponse::default()
+                                                .interaction_response_data(
+                                                    |data| data.content(
+                                                            format!("자동 이모지 변환 사이즈를 {}(으)로 설정했습니다.", 
+                                                                match sizebutton_reaction.data.custom_id.as_str() {
+                                                                    "setemoji_smallest" => "절라 짝게",
+                                                                    "setemoji_small" => "작게",
+                                                                    "setemoji_medium" => "중간",
+                                                                    "setemoji_large" => "크게",
+                                                                    "setemoji_largest" => "존,나 크게",
+                                                                    _ => "자동"
+                                                                })
+                                                        )
+                                                ),
                                         )
                                         .await {
                                             error!("sending error: {:?}", why);
@@ -269,9 +271,11 @@ impl CommandInterface for GuildConfigSetting {
     }
 
     fn register(&self) -> CreateApplicationCommand {
-        CreateApplicationCommand::new(self.name())
+        CreateApplicationCommand::default()
+            .name(self.name())
             .description("이 서버의 봇 설정을 편집해요")
             .default_member_permissions(Permissions::ADMINISTRATOR)
+            .clone()
     }
 }
 
@@ -343,30 +347,37 @@ fn size_notice() -> String {
     ".to_string()
 }
 
-fn size_components() -> [CreateActionRow; 2] {
-    [CreateActionRow::default()
-        .add_button(CreateButton::default()
-            .custom_id("setemoji_smallest")
-            .label("절라 짝게")
-            .style(ButtonStyle::Danger).clone())
-        .add_button(|b| 
-            b.custom_id("setemoji_small")
-            .label("작게")
-            .style(ButtonStyle::Secondary))
-        .add_button(|b| 
-            b.custom_id("setemoji_medium")
-            .label("중간")
-            .style(ButtonStyle::Secondary))
-        .add_button(|b| b.custom_id("setemoji_large")
-            .label("크게")
-            .style(ButtonStyle::Secondary))
-        .add_button(|b| b.custom_id("setemoji_largest")
-            .label("존,나크게")
-            .style(ButtonStyle::Danger)).clone(),
-    CreateActionRow::default()
-        .add_button(|b|
-            b.custom_id("setemoji_auto")
-            .label("자동")
-            .style(ButtonStyle::Primary)).clone()
-    ]
+fn size_component() -> CreateComponents {
+    CreateComponents::default()
+        .add_action_row(
+            CreateActionRow::default()
+            .add_button(CreateButton::default()
+                .custom_id("setemoji_smallest")
+                .label("절라 짝게")
+                .style(ButtonStyle::Danger).clone())
+            .add_button(CreateButton::default() 
+                .custom_id("setemoji_small")
+                .label("작게")
+                .style(ButtonStyle::Secondary).clone())
+            .add_button(CreateButton::default() 
+                .custom_id("setemoji_medium")
+                .label("중간")
+                .style(ButtonStyle::Secondary).clone())
+            .add_button(CreateButton::default()
+                .custom_id("setemoji_large")
+                .label("크게")
+                .style(ButtonStyle::Secondary).clone())
+            .add_button(CreateButton::default() 
+                .custom_id("setemoji_largest")
+                .label("존,나크게")
+                .style(ButtonStyle::Danger).clone()).clone()
+        )
+        .add_action_row(
+            CreateActionRow::default()
+            .add_button(CreateButton::default()
+                .custom_id("setemoji_auto")
+                .label("자동")
+                .style(ButtonStyle::Primary).clone()).clone()
+        ).clone()
+    
 }

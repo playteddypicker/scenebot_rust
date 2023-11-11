@@ -1,9 +1,11 @@
 use serenity::{
     async_trait,
-    builder::{CreateCommand, CreateEmbed},
+    builder::{CreateApplicationCommand, CreateEmbed},
     client::Context,
     model::{
-        application::{CommandDataOption, CommandInteraction},
+        application::interaction::application_command::{
+            ApplicationCommandInteraction, CommandDataOption,
+        },
         prelude::Message,
     },
     Error,
@@ -24,7 +26,7 @@ impl CommandInterface for Help {
         &self,
         ctx: &Context,
         _options: &[CommandDataOption],
-        command: &CommandInteraction,
+        command: &ApplicationCommandInteraction,
     ) -> Result<Message, Error> {
         reaction_pages::reaction_pages(command.clone(), ctx, get_help_embed()).await
     }
@@ -33,15 +35,18 @@ impl CommandInterface for Help {
         String::from("help")
     }
 
-    fn register(&self) -> CreateCommand {
-        CreateCommand::new(self.name()).description("이 봇의 사용법을 알려드립니다")
+    fn register(&self) -> CreateApplicationCommand {
+        CreateApplicationCommand::default()
+            .name(self.name())
+            .description("이 봇의 사용법을 알려드립니다")
+            .clone()
     }
 }
 
 fn get_help_embed() -> Vec<CreateEmbed> {
     vec![
         //1페이지 : /update 커맨드 설명
-        CreateEmbed::new()
+        CreateEmbed::default()
             .title("봇 사용법 1 : 명령어 등록")
             .field(
                 "/update 명령어로 명령어 등록하기", 
@@ -49,9 +54,10 @@ fn get_help_embed() -> Vec<CreateEmbed> {
                 "/update 명령어를 누른 후 등록 버튼을 누르면 명령어를 등록할 수 있습니다.", 
                 false
             )
-            .image("https://media.discordapp.net/attachments/1035386153668452383/1079852842396946564/2023-02-28_04.49.31.png"),
+            .image("https://media.discordapp.net/attachments/1035386153668452383/1079852842396946564/2023-02-28_04.49.31.png")
+            .clone(),
         //2페이지 : /config 명령어
-        CreateEmbed::new()
+        CreateEmbed::default()
             .title("봇 사용법 2 : /config 명령어")
             .field(
                 "/config 명령어로 봇 설정하기",
@@ -60,9 +66,10 @@ fn get_help_embed() -> Vec<CreateEmbed> {
                 "- \"크기 기본값 설정하기\" : 자동 이모지 크기 조절이 켜져있을 때의 확대값을 설정합니다.",
                 false
             )
-            .image("https://media.discordapp.net/attachments/1035386153668452383/1079854305764446259/2023-02-28_04.55.20.png"),
+            .image("https://media.discordapp.net/attachments/1035386153668452383/1079854305764446259/2023-02-28_04.55.20.png")
+            .clone(),
         //3페이지 : /send 명령어
-        CreateEmbed::new()
+        CreateEmbed::default()
             .title("봇 사용법 3 : /send 명령어")
             .field(
                 "/send 명령어로 원하는 크기로 이모지 전송하기",
@@ -72,5 +79,6 @@ fn get_help_embed() -> Vec<CreateEmbed> {
                 false
             )
             .image("https://media.discordapp.net/attachments/1035386153668452383/1079855318042955916/2023-02-28_04.59.22.png?width=1283&height=1138")
+            .clone()
     ]
 }
