@@ -25,5 +25,16 @@ features = ["macros", "rt-multi-thread", "fs"]
 
 [dependencies.serenity]
 default-features = false
-features = ["builder", "chrono", "client", "cache", "gateway", "http", "model", "utils", "rustls_backend", "collector"]
-version="0.11.7"
+features = [
+    "builder",
+    "chrono",
+    "client",
+    "cache",
+    "gateway",
+    "http",
+    "model",
+    "utils",
+    "rustls_backend",
+    "collector",
+]
+version = "0.12.2"

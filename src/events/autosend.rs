@@ -10,7 +10,7 @@ use crate::utils::scene_core::ImageSize::{Auto, HyperTechniqueOfLisaSuFinger, Me
 use crate::GlobalGuildConfigs;
 
 use crate::utils::scene_core::{get_resized_image, webp_transfer, EmojiFilter};
-use std::time::Instant;
+use std::{num::NonZeroU64, time::Instant};
 
 impl EmojiFilter for Message {
     fn emoji_format_filter(&self) -> Result<(bool, String), ()> {
@@ -59,7 +59,9 @@ pub async fn auto_send_transfered_image(ctx: &Context, msg: &Message) {
     };
 
     let guilds_config = counter_lock.read().await;
-    let gconfig_lock = guilds_config.get(&msg.guild_id.unwrap().0).unwrap();
+    let gconfig_lock = guilds_config
+        .get(&NonZeroU64::new(msg.guild_id.unwrap().get()).unwrap())
+        .unwrap();
     let size_config = {
         let gconfig = gconfig_lock.lock().await;
 
@@ -88,6 +90,13 @@ pub async fn auto_send_transfered_image(ctx: &Context, msg: &Message) {
             Medium => "?size=256",
             _ => "",
         };
+
+        let global_username = msg
+            .author
+            .clone()
+            .global_name
+            .unwrap_or(msg.author.clone().name);
+
         msg.channel_id
             .say(
                 &ctx.http,
@@ -95,9 +104,9 @@ pub async fn auto_send_transfered_image(ctx: &Context, msg: &Message) {
                     + match &msg.member {
                         Some(m) => match &m.nick {
                             Some(nick) => nick,
-                            None => &msg.author.name,
+                            None => &global_username,
                         },
-                        None => &msg.author.name,
+                        None => &global_username,
                     }
                     + "** :",
             )
@@ -112,6 +121,13 @@ pub async fn auto_send_transfered_image(ctx: &Context, msg: &Message) {
                 .await
                 .unwrap()
         }];
+
+        let global_username = msg
+            .author
+            .clone()
+            .global_name
+            .unwrap_or(msg.author.clone().name);
+
         msg.channel_id
             .send_files(
                 &ctx.http,
@@ -121,9 +137,9 @@ pub async fn auto_send_transfered_image(ctx: &Context, msg: &Message) {
                         + match &msg.member {
                             Some(m) => match &m.nick {
                                 Some(nick) => nick,
-                                None => &msg.author.name,
+                                None => &global_username,
                             },
-                            None => &msg.author.name,
+                            None => &global_username,
                         }
                         + "** :",
                 ),
@@ -157,7 +173,9 @@ pub async fn auto_send_webp_image(ctx: &Context, msg: &Message) {
 
     let guilds_config = counter_lock.write().await;
 
-    let gconfig_lock = guilds_config.get(&msg.guild_id.unwrap().0).unwrap();
+    let gconfig_lock = guilds_config
+        .get(&NonZeroU64::new(msg.guild_id.unwrap().get()).unwrap())
+        .unwrap();
     let gconfig = gconfig_lock.lock().await;
     if !gconfig.auto_transfer_webp {
         return;

@@ -100,7 +100,7 @@ pub async fn reaction_pages(
 ) -> Result<serenity::model::channel::Message, serenity::Error> {
     let mut reactive_interaction = SkippableEmbed {
         total: embeds.len(),
-        embedlist: embeds,
+        embedlist: embeds.clone(),
         current_idx: 0,
         button_disable_option: (true, true, true, true),
     };
@@ -112,9 +112,11 @@ pub async fn reaction_pages(
     if let Err(why) = interaction
         .edit_response(
             &ctx.http,
-            EditInteractionResponse::new().components(vec![set_reaction_page_action_row(
-                &mut reactive_interaction,
-            )]),
+            EditInteractionResponse::new()
+                .components(vec![set_reaction_page_action_row(
+                    &mut reactive_interaction,
+                )])
+                .embed(embeds[0].clone()),
         )
         .await
     {

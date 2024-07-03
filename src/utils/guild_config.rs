@@ -3,7 +3,10 @@ use log::{error, info};
 
 use mongodb::bson::doc;
 use serde::{Deserialize, Serialize};
-use serenity::{client::Context, gateway::ActivityData, model::id::GuildId};
+use serenity::{
+    all::Permissions, builder::CreateCommand, client::Context, gateway::ActivityData,
+    model::id::GuildId,
+};
 use std::num::NonZeroU64;
 
 use std::sync::Arc;
@@ -20,7 +23,7 @@ pub struct GuildConfig {
 impl GuildConfig {
     pub fn new(guild: &GuildId) -> Self {
         Self {
-            guild_id: guild.0,
+            guild_id: NonZeroU64::new(guild.get()).unwrap(),
             auto_magnitute_enable: false,
             auto_magnitute_config: ImageSize::Auto,
             auto_transfer_webp: false,
@@ -34,7 +37,7 @@ impl GuildConfig {
         auto_transfer_webp_input: bool,
     ) -> Self {
         Self {
-            guild_id: guild.0,
+            guild_id: NonZeroU64::new(guild.get()).unwrap(),
             auto_magnitute_enable: auto_magnitute_enable_input,
             auto_magnitute_config: auto_magnitute_config_input,
             auto_transfer_webp: auto_transfer_webp_input,
@@ -50,7 +53,7 @@ impl GuildConfig {
                 .clone()
         };
         let mut guilds_config = counter_lock.write().await;
-        match guilds_config.remove(&guild.0) {
+        match guilds_config.remove(&NonZeroU64::new(guild.get()).unwrap()) {
             Some(_) => Ok(()),
             None => Err(()),
         }
@@ -81,14 +84,29 @@ impl GuildConfig {
         for guild in ctx.cache.guilds() {
             let sync_collections = collections.clone();
             let sync_guilds_config = counter_lock.clone();
+            if let Err(why) = guild
+                .create_command(
+                    &ctx.http,
+                    CreateCommand::new("update")
+                        .description("봇의 업데이트를 확인해요")
+                        .default_member_permissions(Permissions::ADMINISTRATOR),
+                )
+                .await
+            {
+                error!(
+                    "error occured while creating update command at {}\n{:#?}",
+                    guild, why
+                );
+            }
             tokio::spawn(async move {
-                info!("loading guild {}..", guild.0);
+                info!("loading guild {}..", NonZeroU64::new(guild.get()).unwrap());
+
                 let collections = sync_collections.lock().await;
                 let mut guilds_config = sync_guilds_config.write().await;
                 let find_result = collections
                     .find_one(
                         doc! {
-                            "guild_id" : guild.0.get() as f64
+                            "guild_id" : guild.get() as f64
                         },
                         None,
                     )
@@ -108,7 +126,7 @@ impl GuildConfig {
                                 if let Err(why) = collections
                                     .insert_one(
                                         doc! {
-                                                "guild_id" : guild.0.get() as f64,
+                                                "guild_id" : guild.get() as f64,
                                                 "auto_magnitute_enable" : false,
                                                 "auto_magnitute_config" : "Auto",
                                                 "auto_transfer_webp": false,
@@ -119,7 +137,8 @@ impl GuildConfig {
                                 {
                                     error!(
                                         "Couldn't added new DB to: guildid: {}, {:?}",
-                                        guild.0, why
+                                        guild.get(),
+                                        why
                                     );
                                     return;
                                 }
@@ -129,18 +148,19 @@ impl GuildConfig {
                         };
 
                         guilds_config.insert(
-                            guild.0,
+                            NonZeroU64::new(guild.get()).unwrap(),
                             std::sync::Arc::new(tokio::sync::Mutex::new(new_config)),
                         );
                     }
                     Err(why) => {
                         error!(
                             "an error occured when loading data from DB: guildid: {}\n{:?}",
-                            guild.0, why
+                            guild.get(),
+                            why
                         );
                     }
                 }
-                info!("guild {} loaded.", guild.0);
+                info!("guild {} loaded.", guild.get());
             });
         }
 

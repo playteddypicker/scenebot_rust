@@ -9,7 +9,7 @@ pub async fn db_delete(
     _: &Option<Guild>,
     database: &mongodb::Client,
 ) {
-    let guildid = incomplete.id.0.get();
+    let guildid = incomplete.id.get();
     let collections: mongodb::Collection<bson::document::Document> = database
         .database("scene")
         .collection(std::env::var("BOT_DB_NAME").unwrap().as_str());
@@ -20,7 +20,7 @@ pub async fn db_delete(
     {
         error!(
             "Couldn't delete new DB from: guildid: {} {:?}",
-            incomplete.id.0, why
+            guildid, why
         );
     }
 

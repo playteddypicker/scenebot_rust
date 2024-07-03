@@ -17,7 +17,7 @@ pub async fn senddm(ctx: &Context, guild: &Guild, is_new: Option<bool>) {
     if is_new.is_none() || !is_new.unwrap() {
         return;
     }
-    let teddypicker = UserId(NonZeroU64::new(653157614452211712).unwrap());
+    let teddypicker = UserId::new(653157614452211712);
     match teddypicker.create_dm_channel(&ctx.http).await {
         Ok(channel) => {
             channel
@@ -76,7 +76,7 @@ pub async fn db_fetch(
     let collections = database
         .database("scene")
         .collection(std::env::var("BOT_DB_NAME").unwrap().as_str());
-    let guildid = guild.id.0.get();
+    let guildid = guild.id.get();
     let _ = collections
         .find_one_and_delete(doc! { "guild_id" : guildid as f64 }, None)
         .await;
@@ -95,14 +95,14 @@ pub async fn db_fetch(
     {
         error!(
             "Couldn't added new DB to: guildid: {}, name: {}, {:?}",
-            guild.id.0, guild.name, why
+            guildid, guild.name, why
         );
         return;
     }
 
     info!(
         "new DB added to : guildid: {}, name: {}",
-        guild.id.0, guild.name
+        guildid, guild.name
     );
 
     let counter_lock = {
@@ -114,7 +114,7 @@ pub async fn db_fetch(
     };
     let mut guilds_config = counter_lock.write().await;
     guilds_config
-        .entry(guild.id.0)
+        .entry(NonZeroU64::new(guildid).unwrap())
         .or_insert(std::sync::Arc::new(tokio::sync::Mutex::new(new_config)));
 }
 
