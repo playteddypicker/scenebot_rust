@@ -9,7 +9,7 @@
 
 ## 초대 링크
 
-<a margin="20" href="https://discord.com/api/oauth2/authorize?client_id=1033630935490502686&permissions=8&scope=bot%20applications.commands" target="_blank"><img margin="20px" height="120" src="https://cdn.discordapp.com/avatars/1033630935490502686/005655fb6a648d22fb412ffc9a03e9a6?size=1024" alt="마리귀여움" target="_blank"></a>
+<a margin="20" href="https://discord.com/api/oauth2/authorize?client_id=1033630935490502686&permissions=8&scope=bot%20applications.commands" target="_blank"><img margin="20px" height="120" src="https://cdn.discordapp.com/avatars/1033630935490502686/6a22cbc229b81215865fba5fc8583364?size=1024" alt="너봤구나" target="_blank"></a>
 <a margin="20" href="https://discord.com/api/oauth2/authorize?client_id=887415276117827665&permissions=8&scope=bot%20applications.commands" target="_blank"><img margin="20px" height="120" src="https://cdn.discordapp.com/avatars/887415276117827665/08967c8129682505929a05dfed926a34?size=1024" alt="씬" target="_blank"></a>
 
 전에 있던 씬봇 러스트로 싹 갈아엎음
