@@ -2,8 +2,11 @@
 Cargo.lock
 .env
 .DS_Store
-<<<<<<< HEAD
 log.txt
-=======
 out.gif
->>>>>>> dev
+scene_rust
+.env.irem
+.env.scene
+send.sh
+irem/
+scene/
