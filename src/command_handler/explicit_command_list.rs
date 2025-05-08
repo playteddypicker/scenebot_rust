@@ -52,7 +52,7 @@ lazy_static! {
             ("send", commands::send::get_command()),
             ("config", commands::config::get_command()),
             ("help", commands::help::get_command()),
-            ("webp", commands::webp_transfer::get_command())
+            //("webp", commands::webp_transfer::get_command())
         ])
     };
 }
