@@ -10,10 +10,8 @@ use serenity::{
     Error,
 };
 
-use regex::Regex;
-
 use crate::command_handler::explicit_command_list::CommandInterface;
-use crate::utils::scene_core::{get_resized_image, EmojiFilter, ImageSize};
+use crate::utils::scene_core::{emoji_format_filter, get_resized_image, ImageSize};
 
 struct SendSizedEmoji;
 
@@ -41,7 +39,7 @@ impl CommandInterface for SendSizedEmoji {
                 .await;
         }
 
-        let filtered = emoji.unwrap().emoji_format_filter();
+        let filtered = emoji_format_filter(emoji.unwrap());
         if filtered.is_err() {
             return command
                 .edit_response(
@@ -100,31 +98,5 @@ impl CommandInterface for SendSizedEmoji {
         CreateCommand::new(self.name())
             .description("이모지의 크기를 변경해 전송합니다")
             .set_options(options)
-    }
-}
-
-impl EmojiFilter for &str {
-    fn emoji_format_filter(&self) -> Result<(bool, String), ()> {
-        let msg_content_vec: Vec<&str> = self.split(':').collect();
-        let content_regex: Regex = Regex::new(r"^<a?:.+?:\d+>$").unwrap();
-        match !content_regex.is_match(self) || msg_content_vec.len() != 3 {
-            false => {
-                let mut id = msg_content_vec[2].to_string();
-                id.pop();
-                let mut is_png = false;
-                let img_url = format!(
-                    "https://cdn.discordapp.com/emojis/{}.{}",
-                    id,
-                    if self.contains("<a:") {
-                        "gif"
-                    } else {
-                        is_png = true;
-                        "png"
-                    }
-                );
-                Ok((is_png, img_url))
-            }
-            true => Err(()),
-        }
     }
 }

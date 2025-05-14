@@ -1,21 +1,19 @@
 use serde::{Deserialize, Serialize};
 use serenity::{builder::CreateAttachment, client::Context};
 
-use std::io::{BufReader, BufWriter, Cursor, Seek, Write};
+use std::io::BufWriter;
 use std::num::NonZeroU32;
 
 use fast_image_resize as fr;
-use image::codecs::{
-    gif::{GifEncoder, Repeat},
-    webp::WebPDecoder,
-};
-use image::{AnimationDecoder, ImageDecoder, ImageEncoder};
 
-use log::error;
+use image::ImageEncoder;
+
+use regex::Regex;
 
 //png인지 확인하는 부울값과 img url을 반환함
 pub trait EmojiFilter {
     fn emoji_format_filter(&self) -> Result<(bool, String), ()>;
+    fn double_emoji_format_filter(&self) -> Result<(bool, String, String), ()>;
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -140,85 +138,27 @@ impl WebPTransferError {
     }
 }
 
-pub async fn webp_transfer(
-    image_url: String,
-    autosend: bool,
-) -> Result<CreateAttachment, WebPTransferError> {
-    let mut reader_buf = Cursor::new(Vec::new());
-
-    if reader_buf
-        .write_all(
-            &reqwest::get(image_url)
-                .await
-                .unwrap()
-                .bytes()
-                .await
-                .unwrap()
-                .to_vec()[..],
-        )
-        .is_err()
-    {
-        return Err(WebPTransferError::GetRequestFailed);
-    }
-
-    reader_buf.rewind().unwrap();
-
-    //failing error handling with shadowing
-    let decoded_webp = WebPDecoder::new(reader_buf);
-    if decoded_webp.is_err() {
-        return Err(WebPTransferError::DecodingWebPError);
-    }
-    let decoded_webp = decoded_webp.unwrap();
-
-    if decoded_webp.total_bytes() > 2048000 {
-        return Err(WebPTransferError::SizeLimitExceeded);
-    }
-
-    let mut result_buf = BufWriter::new(Vec::new());
-
-    //default extension
-    match decoded_webp.has_animation() {
-        true => {
-            let frames = decoded_webp.into_frames();
-            {
-                let mut encoding_gif = GifEncoder::new_with_speed(&mut result_buf, 10);
-                if let Err(why) = encoding_gif.try_encode_frames(frames) {
-                    error!("try_encode_frames error: {:?}", why);
-                    return Err(WebPTransferError::GifEncodingError);
-                }
-                if let Err(why) = encoding_gif.set_repeat(Repeat::Infinite) {
-                    error!("set_repeat error: {:?}", why);
-                    return Err(WebPTransferError::SetRepeatError);
-                }
-            }
-
-            Ok(CreateAttachment::bytes(
-                result_buf.into_inner().unwrap().to_vec(),
-                "transfered".to_string() + ".gif",
-            ))
-        }
+pub fn emoji_format_filter(emoji_string: &str) -> Result<(bool, String), ()> {
+    let msg_content_vec: Vec<&str> = emoji_string.split(':').collect();
+    let content_regex: Regex = Regex::new(r"^<a?:.+?:\d+>$").unwrap();
+    match !content_regex.is_match(emoji_string) || msg_content_vec.len() != 3 {
         false => {
-            if autosend {
-                return Err(WebPTransferError::AutoPngNotNeeded);
-            }
-            let (result_width, result_height) = decoded_webp.dimensions();
-            let mut read_image = vec![0; decoded_webp.total_bytes() as usize];
-            decoded_webp.read_image(&mut read_image).unwrap();
-
-            if let Err(why) = PngEncoder::new(&mut result_buf).write_image(
-                &read_image[..],
-                result_width,
-                result_height,
-                ColorType::Rgba8,
-            ) {
-                error!("png write error. {:?}", why);
-            };
-
-            Ok(CreateAttachment::bytes(
-                result_buf.into_inner().unwrap().to_vec(),
-                "transfered".to_string() + ".png",
-            ))
+            let mut id = msg_content_vec[2].to_string();
+            id.pop();
+            let mut is_png = false;
+            let img_url = format!(
+                "https://cdn.discordapp.com/emojis/{}.{}",
+                id,
+                if emoji_string.contains("<a:") {
+                    "gif"
+                } else {
+                    is_png = true;
+                    "png"
+                }
+            );
+            Ok((is_png, img_url))
         }
+        true => Err(()),
     }
 }
 
@@ -270,4 +210,70 @@ async fn resize_png(
         result_buf.into_inner().unwrap().to_vec(),
         "resized.png".to_string(),
     )
+}
+
+pub async fn merge_two_emojis(
+    first_url: &str,
+    second_url: &str,
+) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
+    use image::{imageops, GenericImageView, ImageFormat};
+    use std::io::Cursor;
+
+    // 첫 번째 이모지 URL 및 두 번째 이모지 URL 생성 (크기 128x128)
+    let first_emoji_url = format!("{}?size=128", first_url);
+    let second_emoji_url = format!("{}?size=128", second_url);
+
+    // 두 이모지를 병렬로 가져오기
+    let (first_emoji_result, second_emoji_result) = tokio::join!(
+        async {
+            reqwest::get(&first_emoji_url)
+                .await
+                .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?
+                .bytes()
+                .await
+                .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)
+        },
+        async {
+            reqwest::get(&second_emoji_url)
+                .await
+                .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?
+                .bytes()
+                .await
+                .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)
+        }
+    );
+
+    // 결과 처리
+    let first_emoji_bytes = first_emoji_result?.to_vec();
+    let second_emoji_bytes = second_emoji_result?.to_vec();
+
+    // 이미지 로드
+    let first_img = image::load_from_memory(&first_emoji_bytes)
+        .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?;
+    let second_img = image::load_from_memory(&second_emoji_bytes)
+        .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?;
+
+    // 첫 번째와 두 번째 이모지의 크기 확인
+    let (width1, height1) = first_img.dimensions();
+    let (width2, height2) = second_img.dimensions();
+
+    // 새 이미지 생성 (두 이모지를 나란히 배치)
+    let mut merged_img = image::RgbaImage::new(width1 + width2, std::cmp::max(height1, height2));
+
+    // 첫 번째 이모지 복사
+    imageops::overlay(&mut merged_img, &first_img, 0, 0);
+
+    // 두 번째 이모지 복사 (첫 번째 이모지 오른쪽에 배치)
+    imageops::overlay(&mut merged_img, &second_img, width1 as i64, 0);
+
+    // 결과 이미지를 PNG로 인코딩
+    let mut result_buffer = Vec::new();
+    {
+        let mut cursor = Cursor::new(&mut result_buffer);
+        merged_img
+            .write_to(&mut cursor, ImageFormat::Png)
+            .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?;
+    }
+
+    Ok(result_buffer)
 }

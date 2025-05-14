@@ -52,7 +52,7 @@ impl EventHandler for DiscordEventHandler {
     async fn message(&self, ctx: Context, msg: Message) {
         tokio::join!(
             autosend::auto_send_transfered_image(&ctx, &msg),
-            autosend::auto_send_webp_image(&ctx, &msg)
+            autosend::auto_send_double_emoji(&ctx, &msg)
         );
     }
 
