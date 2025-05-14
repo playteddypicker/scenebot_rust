@@ -5,6 +5,7 @@ Cargo.lock
 log.txt
 out.gif
 scene_rust
+release_binary
 .env.irem
 .env.scene
 send.sh
