@@ -4,12 +4,12 @@
 
 - 자동으로 작은 이모지를 확대해주거나, 이모지를 원하는 크기로 변환해 보낼 수 있고
 - 니트로가 없는 사용자도 명령어를 통해 움짤 이모지를 보낼 수 있습니다.
+- 무려 더블콘 지원!!!  
 - 보이지 않는 Webp도 보이게 gif로 변환해서 전송합니다.
 - Rust라는 언어로 최적화하며 작성해 타 봇보다 변환 및 전송 속도가 빠릅니다.
 
 ## 초대 링크
 
-<a margin="20" href="https://discord.com/api/oauth2/authorize?client_id=1033630935490502686&permissions=8&scope=bot%20applications.commands" target="_blank"><img margin="20px" height="120" src="https://cdn.discordapp.com/avatars/1033630935490502686/005655fb6a648d22fb412ffc9a03e9a6?size=1024" alt="마리귀여움" target="_blank"></a>
 <a margin="20" href="https://discord.com/api/oauth2/authorize?client_id=887415276117827665&permissions=8&scope=bot%20applications.commands" target="_blank"><img margin="20px" height="120" src="https://cdn.discordapp.com/avatars/887415276117827665/08967c8129682505929a05dfed926a34?size=1024" alt="씬" target="_blank"></a>
 
 전에 있던 씬봇 러스트로 싹 갈아엎음
